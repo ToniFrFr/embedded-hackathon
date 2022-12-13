@@ -17,12 +17,14 @@ public:
 	virtual ~WirelessConnection();
 	bool connectToAP();
 	void disconnectFromAP();
+	void changeSSID(char * ssid);
+	void changePASSWORD(char * password);
+	bool connectionStatus();
 private:
 	std::string SSID;
 	std::string PASSWORD;
 	int ConnectionId;
-	bool Connected;
-
+	bool ConnectedStatus;
 };
 
 #endif /* WIRELESSCONNECTION_H_ */

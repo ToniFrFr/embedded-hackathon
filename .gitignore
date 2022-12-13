@@ -42,3 +42,6 @@ Debug/
 Release/
 
 *.launch
+
+#VSCODE
+.vscode/
