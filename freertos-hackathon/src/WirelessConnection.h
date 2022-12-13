@@ -8,8 +8,11 @@
 #ifndef WIRELESSCONNECTION_H_
 #define WIRELESSCONNECTION_H_
 
-#include <string>
+#include <string.h>
 #include "../networking/esp8266_socket.h"
+#include "app_mqtt_config.h"
+#include "FreeRTOS.h"
+#include "transport_interface.h"
 
 class WirelessConnection {
 public:
