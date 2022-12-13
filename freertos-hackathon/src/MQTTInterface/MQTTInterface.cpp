@@ -7,7 +7,6 @@
 
 #include "MQTTInterface.h"
 
-extern uint32_t prvGetTimeMs( void );
 
 static void prvEventCallback( MQTTContext_t * pxMQTTContext,
                               MQTTPacketInfo_t * pxPacketInfo,
@@ -24,15 +23,13 @@ uint32_t uxRandMQTT() {
 MQTTInterface::MQTTInterface(char * ssid, char * password, char * brokerIp, uint16_t brokerPort) : SSID(ssid), PASSWORD(password), BROKERPORT(brokerPort) {
 	// TODO Auto-generated constructor stub
 	this->ConnectionState = NotConnected;
-	this->xNetworkContext = { 0 };
 	this->BROKERPORT = brokerPort;
-	this->xMQTTContext = { 0 };
 }
 
 MQTTInterface::~MQTTInterface() {
 	// TODO Auto-generated destructor stub
 }
-void MQTTInterface::ConnectToMQTTServer(NetworkContext_t * pxNetworkContext) {
+void MQTTInterface::ConnectToMQTTServer(NetworkContext_t *pxNetworkContext) {
 	PlaintextTransportStatus_t xNetworkStatus;
     BackoffAlgorithmStatus_t xBackoffAlgStatus = BackoffAlgorithmSuccess;
     BackoffAlgorithmContext_t xReconnectParams;
@@ -44,7 +41,7 @@ void MQTTInterface::ConnectToMQTTServer(NetworkContext_t * pxNetworkContext) {
                                        mqttRETRY_MAX_ATTEMPTS );
 
 	do {
-		xNetworkStatus = Plaintext_FreeRTOS_Connect(&xNetworkContext, BROKER_IP.c_str(), SSID.c_str(), 
+		xNetworkStatus = Plaintext_FreeRTOS_Connect(pxNetworkContext, BROKER_IP.c_str(), SSID.c_str(), 
 		PASSWORD.c_str(), BROKERPORT, mqttTRANSPORT_SEND_RECV_TIMEOUT_MS, mqttTRANSPORT_SEND_RECV_TIMEOUT_MS);
 
 		if(xNetworkStatus != PLAINTEXT_TRANSPORT_SUCCESS) {
@@ -66,7 +63,7 @@ void MQTTInterface::ConnectToMQTTServer(NetworkContext_t * pxNetworkContext) {
 		}
 	} while (( xNetworkStatus != PLAINTEXT_TRANSPORT_SUCCESS ) && ( xBackoffAlgStatus == BackoffAlgorithmSuccess ));
 }
-void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer) {
+void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer, MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext) {
 	this->ConnectionState = ConnectedToBroker;
 
 	MQTTStatus_t xResult;
@@ -74,11 +71,11 @@ void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer
     bool xSessionPresent;
     TransportInterface_t xTransport;
 
-	xTransport.pNetworkContext = &xNetworkContext;
+	xTransport.pNetworkContext = pxNetworkContext;
     xTransport.send = Plaintext_FreeRTOS_send;
     xTransport.recv = Plaintext_FreeRTOS_recv;
 
-	xResult = MQTT_Init(&xMQTTContext, &xTransport, prvGetTimeMs, prvEventCallback, pNetworkBuffer);
+	xResult = MQTT_Init(pxMQTTContext, &xTransport, prvGetTimeMs, prvEventCallback, pNetworkBuffer);
 
 	 /* Many fields not used in this demo so start with everything at 0. */
     //( void ) memset( ( void * ) &xConnectInfo, 0x00, sizeof( xConnectInfo ) );
@@ -102,7 +99,7 @@ void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer
 
     /* Send MQTT CONNECT packet to broker. LWT is not used in this demo, so it
      * is passed as NULL. */
-    xResult = MQTT_Connect( &xMQTTContext,
+    xResult = MQTT_Connect( pxMQTTContext,
                             &xConnectInfo,
                             NULL,
                             mqttCONNACK_RECV_TIMEOUT_MS,
@@ -111,9 +108,9 @@ void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer
 		this->ConnectionState = ConnectedToBroker;
 	}
 }
-void MQTTInterface::DisconnectFromMQTTServer() {
-	MQTT_Disconnect(&xMQTTContext);
-	Plaintext_FreeRTOS_Disconnect(&xNetworkContext);
+void MQTTInterface::DisconnectFromMQTTServer(MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext) {
+	MQTT_Disconnect(pxMQTTContext);
+	Plaintext_FreeRTOS_Disconnect(pxNetworkContext);
 	this->ConnectionState = NotConnected;
 }
 void MQTTInterface::ChangeAPCredentials(char * ssid, char * password) {
@@ -124,7 +121,7 @@ void MQTTInterface::ChangeBrokerIPAndPort(char * brokerIp, int port) {
 	this->BROKER_IP = std::string(brokerIp);
 	this->BROKERPORT = port;
 }
-bool MQTTInterface::Publish(std::string topic, std::string payload) {
+bool MQTTInterface::Publish(std::string topic, std::string payload, MQTTContext_t *pxMQTTContext) {
 	MQTTStatus_t xResult;
     MQTTPublishInfo_t xMQTTPublishInfo;
 
@@ -139,7 +136,7 @@ bool MQTTInterface::Publish(std::string topic, std::string payload) {
 	xMQTTPublishInfo.payloadLength = payload.length();
 	
 	//Packet ID can be 0 as we are using MQTTQoS0;
-	xResult = MQTT_Publish(&xMQTTContext, &xMQTTPublishInfo, 0);
+	xResult = MQTT_Publish(pxMQTTContext, &xMQTTPublishInfo, 0);
 
 	if(xResult == MQTTSuccess) {
 		return true;

@@ -13,11 +13,14 @@
 #include "app_mqtt_config.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "transport_interface.h"
-#include "core_mqtt.h"
-#include "backoff_algorithm.h"
-#include "library_plaintext.h"
 #include "chip.h"
+
+extern "C" {
+	#include "transport_interface.h"
+	#include "core_mqtt.h"
+	#include "backoff_algorithm.h"
+	#include "library_plaintext.h"
+}
 
 /**
  * @brief The maximum number of retries for network operation with server.
@@ -42,13 +45,6 @@
  */
 #define mqttCONNACK_RECV_TIMEOUT_MS           ( 1000U )
 
-/**
- * @brief The topic to subscribe and publish to in the example.
- *
- * The topic name starts with the client identifier to ensure that each demo
- * interacts with a unique topic name.
- */
-#define mqttTOPIC                             democonfigCLIENT_IDENTIFIER "/example/topic"
 
 /**
  * @brief The number of topic filters to subscribe.
@@ -111,25 +107,24 @@ struct NetworkContext
 
 enum MQTTIntefaceConnectionState {NotConnected, ConnectedToServer, ConnectedToBroker};
 
+extern uint32_t prvGetTimeMs( void );
 
 class MQTTInterface {
 public:
 	MQTTInterface(char * ssid, char * password, char * brokerIp, uint16_t brokerPort);
 	virtual ~MQTTInterface();
 	void ConnectToMQTTServer(NetworkContext_t * pxNetworkContext);
-	void ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer);
-	void DisconnectFromMQTTServer();
+	void ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer, MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext);
+	void DisconnectFromMQTTServer(MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext);
 	void ChangeAPCredentials(char * ssid, char * password);
 	void ChangeBrokerIPAndPort(char * brokerIP, int brokerPort);
-	bool Publish(std::string topic, std::string payload);
+	bool Publish(std::string topic, std::string payload, MQTTContext_t *pxMQTTContext);
 private:
 	std::string SSID;
 	std::string PASSWORD;
 	std::string BROKER_IP;
 	uint16_t BROKERPORT;
 	MQTTIntefaceConnectionState ConnectionState;
-	static NetworkContext_t xNetworkContext;
-	static MQTTContext_t xMQTTContext;
 };
 
 #endif /* MQTTINTERFACE_H_ */

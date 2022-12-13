@@ -63,7 +63,7 @@ extern void vLoggingPrintf( const char * pcFormatString,
  * #define democonfigCLIENT_IDENTIFIER				"insert here."
  */
 #define appconfigCLIENT_IDENTIFIER				"ESP-MQTT-GROUP-08"
-//#define TEST_ENV
+#define TEST_ENV
 #ifdef TEST_ENV
 /**
  * @brief MQTT broker end point to connect to.
@@ -73,7 +73,7 @@ extern void vLoggingPrintf( const char * pcFormatString,
  *
  * #define democonfigMQTT_BROKER_ENDPOINT				"insert here."
  */
-#define appconfigMQTT_BROKER_ENDPOINT				"192.168.1.254"
+#define appconfigMQTT_BROKER_ENDPOINT				"192.168.65.42"
 
 /**
  * @brief The port to use for the demo.

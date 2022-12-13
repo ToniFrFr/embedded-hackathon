@@ -54,7 +54,7 @@ static MQTTFixedBuffer_t xBuffer =
     .pBuffer = ucSharedBuffer,
     .size    = mqttSHARED_BUFFER_SIZE
 };
-static uint32_t prvGetTimeMs( void )
+uint32_t prvGetTimeMs( void )
 {
     TickType_t xTickCount = 0;
     uint32_t ulTimeMs = 0UL;
@@ -130,6 +130,32 @@ void task1(void *params)
 	}
 }
 
+void vConnectionTask(void *pvParams) {
+    uint32_t ulPublishCount = 0U, ulTopicCount = 0U;
+    const uint32_t ulMaxPublishCount = 5UL;
+    NetworkContext_t xNetworkContext = { 0 };
+    PlaintextTransportParams_t xPlaintextTransportParams = { 0 };
+    MQTTContext_t xMQTTContext;
+    MQTTStatus_t xMQTTStatus;
+    PlaintextTransportStatus_t xNetworkStatus;
+
+    xNetworkContext.pParams = &xPlaintextTransportParams;
+
+	MQTTInterface mqttInterface("OPMIKAEL", "pellemiljoona", appconfigMQTT_BROKER_ENDPOINT, appconfigMQTT_BROKER_PORT);
+
+	ulGlobalEntryTimeMs = prvGetTimeMs();
+
+	for(;;) {
+		mqttInterface.ConnectToMQTTServer(&xNetworkContext);
+		mqttInterface.ConnectToMQTTBroker(&xBuffer, &xMQTTContext, &xNetworkContext);
+		mqttInterface.Publish("test/hello", "hello world", &xMQTTContext);
+		mqttInterface.DisconnectFromMQTTServer(&xMQTTContext, &xNetworkContext);
+
+		vTaskDelay(pdMS_TO_TICKS(5000));
+
+	}
+
+}
 int main(void) {
 
 #if defined (__USE_LPCOPEN)
@@ -156,7 +182,8 @@ int main(void) {
 	xTaskCreate(task1, "test",
 			configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *) NULL);
-
+	xTaskCreate(vConnectionTask, "vConnTask", 512, NULL, (tskIDLE_PRIORITY + 1UL),
+			(TaskHandle_t *) NULL);
 
 	/* Start the scheduler */
 	vTaskStartScheduler();

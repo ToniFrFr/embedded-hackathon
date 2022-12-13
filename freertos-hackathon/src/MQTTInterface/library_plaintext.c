@@ -41,11 +41,11 @@
 //#include "sockets_wrapper.h"
 
 /* Transport interface include. */
-#include "MQTTInterface/library_plaintext.h"
+#include "library_plaintext.h"
 
 // Keijo's definitions
 #define FREERTOS_INVALID_SOCKET -1
-#include "esp8266_socket.h"
+#include "../networking/esp8266_socket.h"
 #include "app_mqtt_config.h"
 #include <stdlib.h>
 
