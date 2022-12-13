@@ -109,7 +109,7 @@ struct NetworkContext
     PlaintextTransportParams_t * pParams;
 };
 
-enum MQTTIntefaceConnectionState {NotConnected, ConnectedToServer, ConnectedToBroker}
+enum MQTTIntefaceConnectionState {NotConnected, ConnectedToServer, ConnectedToBroker};
 
 
 class MQTTInterface {
@@ -117,11 +117,11 @@ public:
 	MQTTInterface(char * ssid, char * password, char * brokerIp, uint16_t brokerPort);
 	virtual ~MQTTInterface();
 	void ConnectToMQTTServer(NetworkContext_t * pxNetworkContext);
-	void ConnectToMQTTBroker();
+	void ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer);
 	void DisconnectFromMQTTServer();
 	void ChangeAPCredentials(char * ssid, char * password);
 	void ChangeBrokerIPAndPort(char * brokerIP, int brokerPort);
-	void Publish(std::string topic, std::string payload);
+	bool Publish(std::string topic, std::string payload);
 private:
 	std::string SSID;
 	std::string PASSWORD;

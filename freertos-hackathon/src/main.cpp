@@ -46,8 +46,14 @@ void vConfigureTimerForRunTimeStats( void ) {
 /* end runtime statictics collection */
 
 /*-----MQTT GLOBAL FUNCTIONS AND DEFINITIONS-----*/
+uint32_t ulGlobalEntryTimeMs;
 static uint8_t ucSharedBuffer[ mqttSHARED_BUFFER_SIZE ];
 
+static MQTTFixedBuffer_t xBuffer =
+{
+    .pBuffer = ucSharedBuffer,
+    .size    = mqttSHARED_BUFFER_SIZE
+};
 static uint32_t prvGetTimeMs( void )
 {
     TickType_t xTickCount = 0;
@@ -65,29 +71,6 @@ static uint32_t prvGetTimeMs( void )
 
     return ulTimeMs;
 }
-
-static void prvEventCallback( MQTTContext_t * pxMQTTContext,
-                              MQTTPacketInfo_t * pxPacketInfo,
-                              MQTTDeserializedInfo_t * pxDeserializedInfo )
-{
-    /* The MQTT context is not used for this demo. */
-    ( void ) pxMQTTContext;
-
-    if( ( pxPacketInfo->type & 0xF0U ) == MQTT_PACKET_TYPE_PUBLISH )
-    {
-        prvMQTTProcessIncomingPublish( pxDeserializedInfo->pPublishInfo );
-    }
-    else
-    {
-        prvMQTTProcessResponse( pxPacketInfo, pxDeserializedInfo->packetIdentifier );
-    }
-}
-
-static MQTTFixedBuffer_t xBuffer =
-{
-    .pBuffer = ucSharedBuffer,
-    .size    = mqttexampleSHARED_BUFFER_SIZE
-};
 
 /*-----MQTT GLOBAL FUNCTIONS-----*/
 
@@ -147,10 +130,6 @@ void task1(void *params)
 	}
 }
 
-extern "C" {
-  void vStartSimpleMQTTDemo( void ); // ugly - should be in a header
-}
-
 int main(void) {
 
 #if defined (__USE_LPCOPEN)
@@ -178,7 +157,7 @@ int main(void) {
 			configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *) NULL);
 
-	vStartSimpleMQTTDemo();
+
 	/* Start the scheduler */
 	vTaskStartScheduler();
 

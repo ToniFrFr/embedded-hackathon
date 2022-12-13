@@ -41,17 +41,19 @@
 //#include "sockets_wrapper.h"
 
 /* Transport interface include. */
-#include <MQTTInterface/library_plaintext.h>
+#include "MQTTInterface/library_plaintext.h"
 
 // Keijo's definitions
 #define FREERTOS_INVALID_SOCKET -1
 #include "esp8266_socket.h"
 #include "app_mqtt_config.h"
 #include <stdlib.h>
+
 uint32_t uxRand() {
 	return rand();
 }
 #include "task.h"
+
 uint32_t get_ticks(void) {
 	return xTaskGetTickCount();
 }
