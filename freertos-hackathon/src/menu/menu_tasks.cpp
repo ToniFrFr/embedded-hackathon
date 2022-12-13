@@ -43,12 +43,12 @@ void menu_operate_task(void *params)
     menu.addItem(new MenuItem(humidity));
     menu.addItem(new MenuItem(temperature));
 
-    int32_t receivedCommand = 0;
+    int32_t receivedCommand;
     LcdStringsStruct structToSend;
 
     while (true)
     {
-        // xQueueReceive(menu_command_queue, &receivedCommand, portMAX_DELAY);
+        xQueueReceive(menu_command_queue, &receivedCommand, portMAX_DELAY);
 
         switch (receivedCommand)
         {
