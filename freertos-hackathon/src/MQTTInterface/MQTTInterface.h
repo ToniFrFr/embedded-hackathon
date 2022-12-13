@@ -12,10 +12,12 @@
 #include "../networking/esp8266_socket.h"
 #include "app_mqtt_config.h"
 #include "FreeRTOS.h"
+#include "task.h"
 #include "transport_interface.h"
 #include "core_mqtt.h"
 #include "backoff_algorithm.h"
 #include "library_plaintext.h"
+#include "chip.h"
 
 /**
  * @brief The maximum number of retries for network operation with server.
@@ -119,14 +121,15 @@ public:
 	void DisconnectFromMQTTServer();
 	void ChangeAPCredentials(char * ssid, char * password);
 	void ChangeBrokerIPAndPort(char * brokerIP, int brokerPort);
+	void Publish(std::string topic, std::string payload);
 private:
 	std::string SSID;
 	std::string PASSWORD;
 	std::string BROKER_IP;
 	uint16_t BROKERPORT;
 	MQTTIntefaceConnectionState ConnectionState;
-	NetworkContext_t xNetworkContext;
-	MQTTContext_t xMQTTContext;
+	static NetworkContext_t xNetworkContext;
+	static MQTTContext_t xMQTTContext;
 };
 
 #endif /* MQTTINTERFACE_H_ */

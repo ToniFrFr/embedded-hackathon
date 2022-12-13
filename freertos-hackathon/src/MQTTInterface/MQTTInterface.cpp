@@ -52,7 +52,7 @@ void MQTTInterface::ConnectToMQTTServer(NetworkContext_t * pxNetworkContext) {
 		}
 	} while (( xNetworkStatus != PLAINTEXT_TRANSPORT_SUCCESS ) && ( xBackoffAlgStatus == BackoffAlgorithmSuccess ));
 }
-void MQTTInterface::ConnectToMQTTBroker() {
+void MQTTInterface::ConnectToMQTTBroker(MQTTGetCurrentTimeFunc_t getTimeFunction, MQTTEventCallback_t userCallback,uint8_t * pxNetworkBuffer) {
 	this->ConnectionState = ConnectedToBroker;
 
 	MQTTStatus_t xResult;
@@ -64,10 +64,42 @@ void MQTTInterface::ConnectToMQTTBroker() {
     xTransport.send = Plaintext_FreeRTOS_send;
     xTransport.recv = Plaintext_FreeRTOS_recv;
 
-	
-	
+	xResult = MQTT_Init(xMQTTContext, &xTransport, getTimeFunction, userCallback, pxNetworkBuffer);
+
+	 /* Many fields not used in this demo so start with everything at 0. */
+    ( void ) memset( ( void * ) &xConnectInfo, 0x00, sizeof( xConnectInfo ) );
+
+    /* Start with a clean session i.e. direct the MQTT broker to discard any
+     * previous session data. Also, establishing a connection with clean session
+     * will ensure that the broker does not store any data when this client
+     * gets disconnected. */
+    xConnectInfo.cleanSession = true;
+
+    /* The client identifier is used to uniquely identify this MQTT client to
+     * the MQTT broker. In a production device the identifier can be something
+     * unique, such as a device serial number. */
+    xConnectInfo.pClientIdentifier = appconfigCLIENT_IDENTIFIER;
+    xConnectInfo.clientIdentifierLength = ( uint16_t ) strlen( appconfigCLIENT_IDENTIFIER );
+
+    /* Set MQTT keep-alive period. It is the responsibility of the application to ensure
+     * that the interval between Control Packets being sent does not exceed the Keep Alive value.
+     * In the absence of sending any other Control Packets, the Client MUST send a PINGREQ Packet. */
+    xConnectInfo.keepAliveSeconds = mqttKEEP_ALIVE_TIMEOUT_SECONDS;
+
+    /* Send MQTT CONNECT packet to broker. LWT is not used in this demo, so it
+     * is passed as NULL. */
+    xResult = MQTT_Connect( xMQTTContext,
+                            &xConnectInfo,
+                            NULL,
+                            mqttCONNACK_RECV_TIMEOUT_MS,
+                            &xSessionPresent );
+	if (xResult == MQTTSuccess) {
+		this->ConnectionState = ConnectedToBroker;
+	}
 }
 void MQTTInterface::DisconnectFromMQTTServer() {
+	MQTT_Disconnect(xMQTTContext);
+	Plaintext_FreeRTOS_Disconnect(&xNetworkContext);
 	this->ConnectionState = NotConnected;
 }
 void MQTTInterface::ChangeAPCredentials(char * ssid, char * password) {
@@ -77,6 +109,9 @@ void MQTTInterface::ChangeAPCredentials(char * ssid, char * password) {
 void MQTTInterface::ChangeBrokerIPAndPort(char * brokerIp, int port) {
 	this->BROKER_IP = std::string(brokerIp);
 	this->BROKERPORT = port;
+}
+void MQTTInterface::Publish(std::string topic, std::string payload) {
+	
 }
 
 

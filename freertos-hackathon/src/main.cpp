@@ -28,6 +28,7 @@
 #include "ModbusRegister.h"
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "MQTTInterface/MQTTInterface.h"
 
 // TODO: insert other definitions and declarations here
 
@@ -43,6 +44,52 @@ void vConfigureTimerForRunTimeStats( void ) {
 
 }
 /* end runtime statictics collection */
+
+/*-----MQTT GLOBAL FUNCTIONS AND DEFINITIONS-----*/
+static uint8_t ucSharedBuffer[ mqttSHARED_BUFFER_SIZE ];
+
+static uint32_t prvGetTimeMs( void )
+{
+    TickType_t xTickCount = 0;
+    uint32_t ulTimeMs = 0UL;
+
+    /* Get the current tick count. */
+    xTickCount = xTaskGetTickCount();
+
+    /* Convert the ticks to milliseconds. */
+    ulTimeMs = ( uint32_t ) xTickCount * MILLISECONDS_PER_TICK;
+
+    /* Reduce ulGlobalEntryTimeMs from obtained time so as to always return the
+     * elapsed time in the application. */
+    ulTimeMs = ( uint32_t ) ( ulTimeMs - ulGlobalEntryTimeMs );
+
+    return ulTimeMs;
+}
+
+static void prvEventCallback( MQTTContext_t * pxMQTTContext,
+                              MQTTPacketInfo_t * pxPacketInfo,
+                              MQTTDeserializedInfo_t * pxDeserializedInfo )
+{
+    /* The MQTT context is not used for this demo. */
+    ( void ) pxMQTTContext;
+
+    if( ( pxPacketInfo->type & 0xF0U ) == MQTT_PACKET_TYPE_PUBLISH )
+    {
+        prvMQTTProcessIncomingPublish( pxDeserializedInfo->pPublishInfo );
+    }
+    else
+    {
+        prvMQTTProcessResponse( pxPacketInfo, pxDeserializedInfo->packetIdentifier );
+    }
+}
+
+static MQTTFixedBuffer_t xBuffer =
+{
+    .pBuffer = ucSharedBuffer,
+    .size    = mqttexampleSHARED_BUFFER_SIZE
+};
+
+/*-----MQTT GLOBAL FUNCTIONS-----*/
 
 static void idle_delay()
 {
