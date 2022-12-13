@@ -81,7 +81,7 @@ LcdStringsStruct IntEdit::display()
 
     if (this->focus)
     {
-        snprintf(string, 17, "     %6d     ", this->value + this->edit);
+        snprintf(string, 17, "    [%6d]    ", this->value + this->edit);
     }
     else
     {

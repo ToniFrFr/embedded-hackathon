@@ -8,6 +8,12 @@ enum MENU
     OK
 };
 
+struct MenuCommandWithTicksStruct
+{
+    uint8_t command;
+    TickType_t ticks;
+};
+
 void menu_command_task(void *params);
 
 void menu_operate_task(void *params);
