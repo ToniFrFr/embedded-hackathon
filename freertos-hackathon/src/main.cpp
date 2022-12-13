@@ -28,6 +28,7 @@
 #include "ModbusRegister.h"
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "RotaryEncoder.h"
 
 // TODO: insert other definitions and declarations here
 
@@ -41,6 +42,49 @@ void vConfigureTimerForRunTimeStats( void ) {
 	LPC_SCTSMALL1->CTRL_U = SCT_CTRL_PRE_L(255) | SCT_CTRL_CLRCTR_L; // set prescaler to 256 (255 + 1), and start timer
 }
 
+
+// Interrupt Flags
+static volatile bool CLOCKWISE_INTERRUPT 			= false;
+static volatile bool COUNTER_CLOCKWISE_INTERRUPT 	= false;
+static volatile bool BUTTON_PRESSED_INTERRUPT 		= false;
+
+// Interrupt pins
+static DigitalIoPin PIN_ClockWise(0, 5, DigitalIoPin::input);
+static DigitalIoPin PIN_CounterClockWise(0, 6, DigitalIoPin::input);
+static DigitalIoPin PIN_Button(1, 8, DigitalIoPin::pullup);
+
+// Rotary Interrupt Handling
+extern "C" {
+
+
+// ClockWise Interrupt
+void PIN_INT0_IRQHandler(void)
+{
+	portBASE_TYPE xHigherPriorityWoken = pdFALSE;
+
+	CLOCKWISE_INTERRUPT = PIN_ClockWise.read();
+
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
+
+	portEND_SWITCHING_ISR(xHigherPriorityWoken);
+}
+
+
+// CounterClockWise Interrupt
+void PIN_INT1_IRQHandler(void)
+{
+	COUNTER_CLOCKWISE_INTERRUPT = PIN_CounterClockWise.read();
+}
+
+
+// Button Press Interrupt
+void PIN_INT2_IRQHandler(void)
+{
+	BUTTON_PRESSED_INTERRUPT = PIN_Button.read();
+}
+
+}
+
 }
 /* end runtime statictics collection */
 
@@ -49,6 +93,36 @@ static void idle_delay()
 	vTaskDelay(1);
 }
 
+
+// This task should wake up when interrupt detected
+void interruptResponseTask(void *params)
+{
+	(void) params;
+
+	while(1) {
+		Board_UARTPutSTR("Interrupt raised\r\n");
+	}
+
+}
+
+/*
+void rotaryTask(void *params)
+{
+	(void) params;
+
+	DigitalIoPin *A 	= new DigitalIoPin(0, 5, DigitalIoPin::input);
+	DigitalIoPin *B 	= new DigitalIoPin(0, 6, DigitalIoPin::input);
+	DigitalIoPin *BTN 	= new DigitalIoPin(1, 8, DigitalIoPin::pullup);
+
+	RotaryEncoder rotaryEncoder(A, B, BTN);
+
+	while(1){
+		rotaryEncoder.read();
+	}
+
+}
+*/
+/*
 void task1(void *params)
 {
 	(void) params;
@@ -99,10 +173,12 @@ void task1(void *params)
 
 	}
 }
+*/
 
 extern "C" {
   void vStartSimpleMQTTDemo( void ); // ugly - should be in a header
 }
+
 
 int main(void) {
 
@@ -127,12 +203,60 @@ int main(void) {
 	// Note that in a Cortex-M3 a higher number indicates lower interrupt priority
 	//NVIC_SetPriority( RITIMER_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1 );
 
+/*
 	xTaskCreate(task1, "test",
 			configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *) NULL);
+*/
+
+/*
+	xTaskCreate(rotaryTask, "rotaryTask",
+				configMINIMAL_STACK_SIZE * 8, NULL, (tskIDLE_PRIORITY + 1UL),
+				(TaskHandle_t *) NULL);
+*/
+	// Initialize PININT driver
+	Chip_PININT_Init(LPC_GPIO_PIN_INT);
+	// Enable PININT clock
+	Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_PININT);
+	// Reset the PININT block
+	Chip_SYSCTL_PeriphReset(RESET_PININT);
+
+	// Configure Interrupts
+	// Interrupt channel for ClockWise interrupts
+	Chip_INMUX_PinIntSel(0, 0, 5);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(0));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(0));
+	NVIC_ClearPendingIRQ(PIN_INT0_IRQn);
+	NVIC_EnableIRQ(PIN_INT0_IRQn);
+
+	// Interrupt channel for CounterClockWise interrupts
+	Chip_INMUX_PinIntSel(1, 0, 6);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(1));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(1));
+	NVIC_ClearPendingIRQ(PIN_INT1_IRQn);
+	NVIC_EnableIRQ(PIN_INT1_IRQn);
+
+	// Interrupt channel for ButtonPress interrupts
+	Chip_INMUX_PinIntSel(2, 1, 8);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(2));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
+	NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
+	NVIC_EnableIRQ(PIN_INT2_IRQn);
+
+
+	xTaskCreate(interruptResponseTask, "interruptTask",
+					configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
+					(TaskHandle_t *) NULL);
 
 	vStartSimpleMQTTDemo();
+
 	/* Start the scheduler */
+
+	Board_UARTPutSTR("Starting Scheduler.. \r\n");
+
 	vTaskStartScheduler();
 
 	/* Should never arrive here */
