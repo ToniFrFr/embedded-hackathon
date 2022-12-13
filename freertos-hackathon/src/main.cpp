@@ -24,6 +24,8 @@
 #include "semphr.h"
 #include "heap_lock_monitor.h"
 #include "retarget_uart.h"
+#include "eeprom.h"
+#include "string.h"
 
 #include "ModbusRegister.h"
 #include "DigitalIoPin.h"
@@ -105,6 +107,80 @@ extern "C"
     }
 }
 
+// EEPROM Definitions
+
+/* EEPROM address used for storage */
+#define EEPROM_ADDR 0x00000100
+
+/* Number of bytes to read/write */
+#define NUM_BYTES 4
+
+void vEEPROMwrite(void *params)
+{
+	(void) params;
+
+	uint8_t ret_code;
+	uint8_t msg[4];
+	uint32_t setpoint_PPM;
+
+	while(1){
+
+		// Get the setpoint, suspend afterwards
+		setpoint_PPM = 132;
+
+		// Disable FreeRTOS scheduler
+		vTaskSuspendAll();
+
+		// uint32_t setpoint_PPM --> uint8_t array
+		msg[0] = (setpoint_PPM & 0x000000ff);
+		msg[1] = (setpoint_PPM & 0x0000ff00) >> 8;
+		msg[2] = (setpoint_PPM & 0x00ff0000) >> 16;
+		msg[3] = (setpoint_PPM & 0xff000000) >> 24;
+
+		ret_code = Chip_EEPROM_Write(EEPROM_ADDR, msg, NUM_BYTES);
+
+		if(ret_code == IAP_CMD_SUCCESS) {
+			// EEPROM Write passed
+		} else {
+			// EEPROM Write failed
+		}
+
+		// Resume FreeRTOS scheduler
+		xTaskResumeAll();
+	}
+}
+
+void vEEPROMread(void *params)
+{
+	(void) params;
+
+	uint8_t ret_code;
+	uint8_t msg[4];
+	uint32_t setpoint_PPM;
+
+	while(1){
+
+		// Disable FreeRTOS scheduler
+		vTaskSuspendAll();
+
+		ret_code = Chip_EEPROM_Read(EEPROM_ADDR, msg, NUM_BYTES);
+
+		if(ret_code == IAP_CMD_SUCCESS) {
+			// EEPROM read passed
+		} else {
+			// EEPROM read failed
+		}
+
+		// uint8_t array --> uint32_t setpoint_PPM
+		setpoint_PPM = msg[0] | (msg[1] << 8) | (msg[2] << 16) | (msg[3] << 24);
+
+		// Resume FreeRTOS scheduler
+		xTaskResumeAll();
+
+		// Send setpoint
+	}
+}
+
 /*
 void rotaryTask(void *params)
 {
@@ -138,6 +214,17 @@ int main(void)
 #endif
 
     heap_monitor_setup();
+
+    /* Generic Initialization */
+    SystemCoreClockUpdate();
+    Board_Init();
+
+    /* Enable SysTick Timer */
+    SysTick_Config(SystemCoreClock / 10);
+
+    /* Enable EEPROM clock and reset EEPROM controller */
+    Chip_Clock_EnablePeriphClock(SYSCTL_CLOCK_EEPROM);
+    Chip_SYSCTL_PeriphReset(RESET_EEPROM);
 
     // initialize RIT (= enable clocking etc.)
     Chip_RIT_Init(LPC_RITIMER);
@@ -175,6 +262,15 @@ int main(void)
                     configMINIMAL_STACK_SIZE * 8, NULL, (tskIDLE_PRIORITY + 1UL),
                     (TaskHandle_t *) NULL);
     */
+
+    xTaskCreate(vEEPROMwrite, "EEPROMwriteTask",
+                    configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
+                    (TaskHandle_t *) NULL);
+
+    xTaskCreate(vEEPROMread, "EEPROMreadTask",
+                    configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
+                    (TaskHandle_t *) NULL);
+
     // Initialize PININT driver
     Chip_PININT_Init(LPC_GPIO_PIN_INT);
     // Enable PININT clock
