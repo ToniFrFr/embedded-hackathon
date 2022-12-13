@@ -46,7 +46,7 @@
 // Keijo's definitions
 #define FREERTOS_INVALID_SOCKET -1
 #include "esp8266_socket.h"
-#include "demo_config.h"
+#include "app_mqtt_config.h"
 #include <stdlib.h>
 uint32_t uxRand() {
 	return rand();
@@ -76,6 +76,8 @@ struct NetworkContext
 
 PlaintextTransportStatus_t Plaintext_FreeRTOS_Connect( NetworkContext_t * pNetworkContext,
                                                        const char * pHostName,
+													   const char * pSSID,
+													   const char * pPASSWORD,
                                                        uint16_t port,
                                                        uint32_t receiveTimeoutMs,
                                                        uint32_t sendTimeoutMs )
@@ -103,7 +105,7 @@ PlaintextTransportStatus_t Plaintext_FreeRTOS_Connect( NetworkContext_t * pNetwo
                                         receiveTimeoutMs,
                                         sendTimeoutMs );
 #else
-        pPlaintextTransportParams->tcpSocket = esp_socket(WIFI_SSID, WIFI_PASS) ;
+        pPlaintextTransportParams->tcpSocket = esp_socket(pSSID, pPASSWORD) ;
         socketStatus = esp_connect(pPlaintextTransportParams->tcpSocket, pHostName, port);
 #endif
 
