@@ -23,13 +23,10 @@ void SimpleMenu::addItem(MenuItem *item)
     items.push_back(item);
 }
 
-LcdStringsStruct SimpleMenu::event(MenuItem::menuEvent e)
+void SimpleMenu::event(MenuItem::menuEvent e)
 {
-    // if (items.size() <= 0)
-    //     return;
-    LcdStringsStruct localStruct;
-    strncpy(localStruct.line_1, "\0", sizeof(localStruct.line_1));
-    strncpy(localStruct.line_2, "\0", sizeof(localStruct.line_2));
+    if (items.size() <= 0)
+        return;
 
     if (!items[position]->event(e))
     {
@@ -50,10 +47,10 @@ LcdStringsStruct SimpleMenu::event(MenuItem::menuEvent e)
         {
             position = 0;
         }
-
-        items[position]->event(MenuItem::show);
-        localStruct = items[position]->getPropertyEdit()->display();
     }
+}
 
-    return localStruct;
+PropertyEdit* SimpleMenu::getCurrentPropertyEdit()
+{
+    return items[position]->getPropertyEdit();
 }

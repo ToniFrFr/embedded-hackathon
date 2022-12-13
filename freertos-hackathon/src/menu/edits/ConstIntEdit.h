@@ -24,20 +24,20 @@
  * @brief Hold and display constant integers
  *
  * Values held by this class can only be modified by
- * setting the value manually.
+ * setting their value manually.
  */
 class ConstIntEdit : public PropertyEdit
 {
 public:
     /**
-     * @brief Construct a new Constant Integer Edit object
+     * @brief Construct a new ConstIntEdit object
      *
      * @param editTitle Title of the object to display
      */
     ConstIntEdit(char *editTitle);
 
     /**
-     * @brief Destroy the Constant Integer Edit object
+     * @brief Destroy the ConstIntEdit object
      *
      */
     virtual ~ConstIntEdit();

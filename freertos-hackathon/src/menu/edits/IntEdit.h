@@ -21,14 +21,14 @@
 #include "PropertyEdit.h"
 
 /**
- * @brief Hold and display pressure
+ * @brief Hold and display modifiable integer
  *
  */
 class IntEdit : public PropertyEdit
 {
 public:
     /**
-     * @brief Construct a new Pressure Edit object
+     * @brief Construct a new IntEdit object
      *
      * @param editTitle Title of the object to display
      * @param upperLimit Value's upper limit
@@ -41,7 +41,7 @@ public:
                  int step);
 
     /**
-     * @brief Destroy the Pressure Edit object
+     * @brief Destroy the IntEdit object
      *
      */
     virtual ~IntEdit();
