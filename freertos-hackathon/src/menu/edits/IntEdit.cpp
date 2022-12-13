@@ -88,8 +88,8 @@ LcdStringsStruct IntEdit::display()
         snprintf(string, 17, "     %6d     ", this->value);
     }
 
-    localStruct.line_1 = this->title;
-    localStruct.line_2 = string;
+    strncpy(localStruct.line_1, this->title, sizeof(localStruct.line_1));
+    strncpy(localStruct.line_2, string, sizeof(localStruct.line_2));
 
     return localStruct;
 }

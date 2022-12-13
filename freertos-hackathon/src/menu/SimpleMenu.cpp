@@ -25,11 +25,11 @@ void SimpleMenu::addItem(MenuItem *item)
 
 LcdStringsStruct SimpleMenu::event(MenuItem::menuEvent e)
 {
-    //if (items.size() <= 0)
-    //    return;
+    // if (items.size() <= 0)
+    //     return;
     LcdStringsStruct localStruct;
-    localStruct.line_1 = nullptr;
-    localStruct.line_2 = nullptr;
+    strncpy(localStruct.line_1, "\0", sizeof(localStruct.line_1));
+    strncpy(localStruct.line_2, "\0", sizeof(localStruct.line_2));
 
     if (!items[position]->event(e))
     {

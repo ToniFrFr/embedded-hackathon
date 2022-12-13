@@ -13,7 +13,7 @@
 #define INT_EDIT_H_
 
 /// \cond
-#include <string>
+#include <cstring>
 #include <cstdio>
 /// \endcond
 

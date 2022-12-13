@@ -14,6 +14,7 @@
 
 /// \cond
 #include <cstdio>
+#include <cstring>
 /// \endcond
 
 #include "../../tasks/lcd_display_task.h"

@@ -31,12 +31,12 @@ void lcd_display_task(void *params)
     {
         xQueueReceive(strings_to_print_queue, &received_struct, portMAX_DELAY);
 
-        if (received_struct.line_1 != nullptr || received_struct.line_2 != nullptr)
+        if (received_struct.line_1[0] != '\0' || received_struct.line_2[0] != '\0')
         {
             lcd->clear();
         }
 
-        if (received_struct.line_1 != nullptr)
+        if (received_struct.line_1[0] != '\0')
         {
             lcd->setCursor(0, 0);
             lcd->print(received_struct.line_1);
@@ -44,7 +44,7 @@ void lcd_display_task(void *params)
             Board_UARTPutSTR("\r\n");
         }
 
-        if (received_struct.line_2 != nullptr)
+        if (received_struct.line_2[0] != '\0')
         {
             lcd->setCursor(0, 1);
             lcd->print(received_struct.line_2);

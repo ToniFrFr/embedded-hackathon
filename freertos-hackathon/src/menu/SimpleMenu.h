@@ -11,6 +11,7 @@
 #define SIMPLE_MENU_H_
 
 /// \cond
+#include <cstring>
 #include <vector>
 /// \endcond
 

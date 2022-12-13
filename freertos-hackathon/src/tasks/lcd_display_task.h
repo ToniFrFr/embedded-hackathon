@@ -3,8 +3,8 @@
 
 struct LcdStringsStruct
 {
-    char *line_1;
-    char *line_2;
+    char line_1[17];
+    char line_2[17];
 };
 
 void lcd_display_task(void *params);
