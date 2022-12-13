@@ -48,6 +48,7 @@ extern "C"
 // Global queues
 QueueHandle_t menu_command_queue;
 QueueHandle_t strings_to_print_queue;
+QueueHandle_t newSetpointQueue;
 
 // Command structs
 MenuCommandWithTicksStruct up;
@@ -120,6 +121,7 @@ int main(void)
 
     menu_command_queue = xQueueCreate(10, sizeof(MenuCommandWithTicksStruct));
     strings_to_print_queue = xQueueCreate(10, sizeof(LcdStringsStruct));
+    newSetpointQueue = xQueueCreate(5, sizeof(uint32_t));
 
     // Initialize PININT driver
     Chip_PININT_Init(LPC_GPIO_PIN_INT);

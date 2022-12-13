@@ -14,8 +14,6 @@ struct MenuCommandWithTicksStruct
     TickType_t ticks;
 };
 
-void menu_command_task(void *params);
-
 void menu_operate_task(void *params);
 
 #endif // MENU_TASKS_H_

@@ -16,17 +16,6 @@
 
 #include "menu_tasks.h"
 
-void menu_command_task(void *params)
-{
-    extern QueueHandle_t menu_command_queue;
-    int32_t command_to_send = (int32_t)params;
-
-    while (true)
-    {
-        xQueueSendToBack(menu_command_queue, &command_to_send, portMAX_DELAY);
-    }
-}
-
 void menu_operate_task(void *params)
 {
     extern QueueHandle_t menu_command_queue;
