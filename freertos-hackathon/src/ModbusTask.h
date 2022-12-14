@@ -72,9 +72,9 @@ private:
 	const uint16_t co2Register;
 	const uint16_t tempRegister;
 	const uint16_t humidityRegister;
-	int co2;
-	int temperature;
-	int humidity;
+	int co2 = 0;
+	int temperature = 0;
+	int humidity = 0;
 
     /**
      * @brief Read the registers into the object
