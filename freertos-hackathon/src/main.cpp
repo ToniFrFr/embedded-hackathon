@@ -19,6 +19,7 @@
 #include "board.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 #include "semphr.h"
 #include "heap_lock_monitor.h"
 #include "retarget_uart.h"
@@ -28,6 +29,7 @@
 #include "ModbusRegister.h"
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "ModbusTask.h"
 #include "RotaryEncoder.h"
 
 #include "tasks/lcd_display_task.h"
