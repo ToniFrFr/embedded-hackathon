@@ -73,9 +73,9 @@ bool IntEdit::getFocus()
     return this->focus;
 }
 
-LcdStringsStruct IntEdit::display()
+LcdDataStruct IntEdit::display()
 {
-    LcdStringsStruct localStruct;
+    LcdDataStruct localStruct;
 
     char string[17];
 
@@ -105,6 +105,11 @@ void IntEdit::save()
 int IntEdit::getValue()
 {
     return this->value;
+}
+
+int IntEdit::getEditedValue()
+{
+    return this->value + this->edit;
 }
 
 void IntEdit::setValue(int value)

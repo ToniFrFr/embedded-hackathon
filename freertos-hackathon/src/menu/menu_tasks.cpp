@@ -13,19 +13,9 @@
 #include "edits/ConstIntEdit.h"
 #include "edits/IntEdit.h"
 #include "../tasks/lcd_display_task.h"
+#include "../ModbusTask.h"
 
 #include "menu_tasks.h"
-
-void menu_command_task(void *params)
-{
-    extern QueueHandle_t menu_command_queue;
-    int32_t command_to_send = (int32_t)params;
-
-    while (true)
-    {
-        xQueueSendToBack(menu_command_queue, &command_to_send, portMAX_DELAY);
-    }
-}
 
 void menu_operate_task(void *params)
 {
@@ -34,64 +24,116 @@ void menu_operate_task(void *params)
     extern QueueHandle_t sendReadSetpointQueue;
     extern QueueHandle_t sendNewSetpointToEepromQueue;
 
-    IntEdit *co2_setpoint = new IntEdit("CO2 setpoint", 0, 2000, 5);
-    ConstIntEdit *co2_measured = new ConstIntEdit("CO2");
-    ConstIntEdit *humidity = new ConstIntEdit("Humidity");
-    ConstIntEdit *temperature = new ConstIntEdit("Temperature");
-
-    SimpleMenu menu;
-    menu.addItem(new MenuItem(co2_setpoint));
-    menu.addItem(new MenuItem(co2_measured));
-    menu.addItem(new MenuItem(humidity));
-    menu.addItem(new MenuItem(temperature));
-
     MenuCommandWithTicksStruct receivedCommand;
-    LcdStringsStruct structToSend;
     TickType_t lastTickCount = 0;
 
-    BaseType_t setpointReceiveStatus;
-    uint32_t setpointAtBoot;
-    uint32_t currentSetpoint;
+    // MeasuredDataStruct = measuredDataStruct;
+
+    BaseType_t modbusSemaphoreStatus;
+    BaseType_t menuCommandQueueStatus;
+
+    MenuValuesStruct menuValuesStruct;
+    PropertyEdit *selectedEdit;
+
+    uint32_t setpoint = 0;
+    bool editing = false;
+
+    bool start = true;
+
     while (true)
     {
-        setpointReceiveStatus = xQueueReceive(sendReadSetpointQueue, &setpointAtBoot, 0);
-        if (setpointReceiveStatus == pdPASS)
+        if (start == true)
         {
-            currentSetpoint = setpointAtBoot;
-            co2_setpoint->setValue(setpointAtBoot);
+            start = false;
+            xQueueReceive(sendReadSetpointQueue, &menuValuesStruct.setpoint, portMAX_DELAY);
+            setpoint = menuValuesStruct.setpoint;
+            menuValuesStruct.editing = 1;
+            menuValuesStruct.co2 = 0;
+            menuValuesStruct.temperature = 0;
+            menuValuesStruct.humidity = 0;
+            xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
         }
 
-        if (co2_setpoint->getValue() != currentSetpoint)
+        menuCommandQueueStatus = xQueueReceive(menu_command_queue, &receivedCommand, 0);
+
+        if (menuCommandQueueStatus == pdPASS)
         {
-            currentSetpoint = co2_setpoint->getValue();
-            xQueueSend(sendNewSetpointToEepromQueue, &currentSetpoint, portMAX_DELAY);
-        }
-
-        xQueueReceive(menu_command_queue, &receivedCommand, portMAX_DELAY);
-
-        if ((receivedCommand.ticks - lastTickCount) > pdMS_TO_TICKS(40))
-        {
-            lastTickCount = xTaskGetTickCount();
-
-            switch (receivedCommand.command)
+            if ((receivedCommand.ticks - lastTickCount) > pdMS_TO_TICKS(50))
             {
-            case MENU::UP:
-                menu.event(MenuItem::up);
-                structToSend = menu.getCurrentPropertyEdit()->display();
-                break;
-            case MENU::DOWN:
-                menu.event(MenuItem::down);
-                structToSend = menu.getCurrentPropertyEdit()->display();
-                break;
-            case MENU::OK:
-                menu.event(MenuItem::ok);
-                structToSend = menu.getCurrentPropertyEdit()->display();
-                break;
-            default:
-                break;
+                lastTickCount = xTaskGetTickCount();
+
+                if (receivedCommand.command == MENU::OK)
+                {
+                    if (editing == true)
+                    {
+                        xQueueSend(sendNewSetpointToEepromQueue, &setpoint, portMAX_DELAY);
+                        menuValuesStruct.editing = 1;
+                        menuValuesStruct.setpoint = setpoint;
+                        xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+                    }
+                    else
+                    {
+                        menuValuesStruct.editing = 0;
+                        menuValuesStruct.setpoint = setpoint;
+                        xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+                    }
+
+                    editing = !editing;
+                }
+
+                if (receivedCommand.command == MENU::UP && editing == true)
+                {
+                    if (setpoint != 2000)
+                    {
+                        setpoint += 5;
+                        if (setpoint > 2000)
+                        {
+                            setpoint = 2000;
+                        }
+                    }
+
+                    menuValuesStruct.editing = 0;
+                    menuValuesStruct.setpoint = setpoint;
+                    xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+                }
+
+                if (receivedCommand.command == MENU::DOWN && editing == true)
+                {
+                    if (setpoint != 0)
+                    {
+                        if (setpoint < 5)
+                        {
+                            setpoint = 0;
+                        }
+                        else
+                        {
+                            setpoint -= 5;
+                        }
+                    }
+
+                    menuValuesStruct.editing = 0;
+                    menuValuesStruct.setpoint = setpoint;
+                    xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+                }
             }
         }
 
-        xQueueSend(strings_to_print_queue, &structToSend, portMAX_DELAY);
+        modbusSemaphoreStatus = xSemaphoreTake(modbus.data_ready, 0);
+        if (modbusSemaphoreStatus == pdPASS)
+        {
+            if (editing == true)
+            {
+                menuValuesStruct.editing = 0;
+            }
+            else
+            {
+                menuValuesStruct.editing = 1;
+            }
+            menuValuesStruct.setpoint = setpoint;
+            menuValuesStruct.co2 = modbus.getCo2();
+            menuValuesStruct.temperature = modbus.getTemperature();
+            menuValuesStruct.humidity = modbus.getHumidity();
+            xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+        }
     }
 }

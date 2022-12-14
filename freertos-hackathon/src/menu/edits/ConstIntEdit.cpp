@@ -45,9 +45,9 @@ bool ConstIntEdit::getFocus()
     return false;
 }
 
-LcdStringsStruct ConstIntEdit::display()
+LcdDataStruct ConstIntEdit::display()
 {
-    LcdStringsStruct localStruct;
+    LcdDataStruct localStruct;
 
     char string[17];
     snprintf(string, 17, "     %6d     ", this->value);
@@ -65,6 +65,10 @@ void ConstIntEdit::save()
 int ConstIntEdit::getValue()
 {
     return this->value;
+}
+
+int ConstIntEdit::getEditedValue()
+{
 }
 
 void ConstIntEdit::setValue(int value)

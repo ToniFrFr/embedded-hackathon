@@ -89,7 +89,7 @@ public:
      * @brief Display object on LCD
      *
      */
-    LcdStringsStruct display();
+    LcdDataStruct display();
 
     /**
      * @brief Get current value
@@ -97,6 +97,8 @@ public:
      * @return int Value of object
      */
     int getValue();
+
+    int getEditedValue();
 
     /**
      * @brief Set the value of object
