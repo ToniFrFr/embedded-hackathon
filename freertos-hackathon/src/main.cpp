@@ -327,6 +327,12 @@ int main(void)
 			(tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *)nullptr);
 
+	// Create the timer
+	TimerHandle_t timer = xTimerCreate("Timer", 3000, pdTRUE, NULL, modbusTimer);
+
+	// Start the timer
+	xTimerStart(timer, 0);
+
 	/* Start the scheduler */
 	vTaskStartScheduler();
 
