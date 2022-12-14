@@ -1,13 +1,3 @@
-#include "chip.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "semphr.h"
-#include "Fmutex.h"
-
-#include "ModbusRegister.h"
-#include "DigitalIoPin.h"
-#include "LiquidCrystal.h"
-
 #include "lcd_display_task.h"
 
 void lcd_display_task(void *params)
@@ -22,34 +12,38 @@ void lcd_display_task(void *params)
     DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
     LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
 
-    // configure display geometry
-    lcd->begin(16, 2);
+    lcd->clear();
 
-    LcdStringsStruct received_struct;
+    MenuValuesStruct received_struct;
+
+    char string_1[17];
+    char string_2[17];
+
+    BaseType_t stringsToPrintStatus;
 
     while (true)
     {
-        xQueueReceive(strings_to_print_queue, &received_struct, portMAX_DELAY);
+        stringsToPrintStatus = xQueueReceive(strings_to_print_queue, &received_struct, portMAX_DELAY);
 
-        if (received_struct.line_1[0] != '\0' || received_struct.line_2[0] != '\0')
+        if (received_struct.editing == 0)
         {
+            snprintf(string_1, 17, "    Edit SP:%4d", received_struct.setpoint);
+            snprintf(string_2, 17, "T:%3dC    H:%3d%", received_struct.temperature, received_struct.humidity);
             lcd->clear();
-        }
-
-        if (received_struct.line_1[0] != '\0')
-        {
             lcd->setCursor(0, 0);
-            lcd->print(received_struct.line_1);
-            Board_UARTPutSTR(received_struct.line_1);
-            Board_UARTPutSTR("\r\n");
-        }
-
-        if (received_struct.line_2[0] != '\0')
-        {
+            lcd->print(string_1);
             lcd->setCursor(0, 1);
-            lcd->print(received_struct.line_2);
-            Board_UARTPutSTR(received_struct.line_2);
-            Board_UARTPutSTR("\r\n");
+            lcd->print(string_2);
+        }
+        else
+        {
+            snprintf(string_1, 17, "CO2:%4d SP:%4d", received_struct.co2, received_struct.setpoint);
+            snprintf(string_2, 17, "T:%3dC    H:%3d%", received_struct.temperature, received_struct.humidity);
+            lcd->clear();
+            lcd->setCursor(0, 0);
+            lcd->print(string_1);
+            lcd->setCursor(0, 1);
+            lcd->print(string_2);
         }
     }
 }
