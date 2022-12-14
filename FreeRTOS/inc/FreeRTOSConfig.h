@@ -54,7 +54,7 @@
 #define configTOTAL_HEAP_SIZE		( ( size_t ) ( 6 * 1024 ) )
 #define configMAX_TASK_NAME_LEN		( 12 )
 #define configUSE_TRACE_FACILITY	1
-#define configUSE_STATS_FORMATTING_FUNCTIONS 1    
+#define configUSE_STATS_FORMATTING_FUNCTIONS 1
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		0
 #define configUSE_CO_ROUTINES 		0
