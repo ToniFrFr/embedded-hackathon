@@ -48,7 +48,9 @@ public:
      *
      * @param e The event to trigger
      */
-    LcdStringsStruct event(MenuItem::menuEvent e);
+    void event(MenuItem::menuEvent e);
+
+    PropertyEdit* getCurrentPropertyEdit();
 
 private:
     std::vector<MenuItem *> items;

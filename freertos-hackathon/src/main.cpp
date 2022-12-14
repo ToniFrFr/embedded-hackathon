@@ -1,24 +1,19 @@
-/*
-===============================================================================
- Name        : main.c
- Author      : $(author)
- Version     :
- Copyright   : $(copyright)
- Description : main definition
-===============================================================================
-*/
-
-#if defined(__USE_LPCOPEN)
-#if defined(NO_BOARD_LIB)
-#include "chip.h"
-#else
-#include "board.h"
-#endif
-#endif
+/**
+ * @file main.cpp
+ * @author Christopher Romano
+ * @author Toni Franciskovic
+ * @author Samuel Tikkanen
+ * @author Mikael Wiksten
+ * @brief Main for freeRTOS hackathon project
+ * @version 0.1
+ * @date 2022-12-13
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
 
 #include <cr_section_macros.h>
-
-// TODO: insert other include files here
+#include "board.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
@@ -35,10 +30,12 @@
 #include "tasks/lcd_display_task.h"
 #include "menu/menu_tasks.h"
 
-// TODO: insert other definitions and declarations here
 
-/* The following is required if runtime statistics are to be collected
- * Copy the code to the source file where other you initialize hardware */
+/**
+ * TODO: delete?
+ * The following is required if runtime statistics are to be collected
+ * Copy the code to the source file where other you initialize hardware
+ */
 extern "C"
 {
     void vConfigureTimerForRunTimeStats(void)
@@ -50,30 +47,27 @@ extern "C"
 }
 /* end runtime statictics collection */
 
-// Interrupt Flags
-static volatile bool CLOCKWISE_INTERRUPT = false;
-static volatile bool COUNTER_CLOCKWISE_INTERRUPT = false;
-static volatile bool BUTTON_PRESSED_INTERRUPT = false;
-
-// Interrupt pins
-static DigitalIoPin PIN_ClockWise(0, 5, DigitalIoPin::input);
-static DigitalIoPin PIN_CounterClockWise(0, 6, DigitalIoPin::input);
-static DigitalIoPin PIN_Button(1, 8, DigitalIoPin::pullup);
-
+// Global queues
 QueueHandle_t menu_command_queue;
 QueueHandle_t strings_to_print_queue;
+QueueHandle_t sendReadSetpointQueue;
+QueueHandle_t sendNewSetpointToEepromQueue;
 
-int32_t up = 0;
-int32_t down = 1;
-int32_t ok = 2;
+// Command structs
+MenuCommandWithTicksStruct up;
+MenuCommandWithTicksStruct down;
+MenuCommandWithTicksStruct ok;
 
-// Use timestamp and struct with ticks if needed for debouncing.
+// Interrupt handlers for rotary encoder.
 extern "C"
 {
     // ClockWise Interrupt
     void PIN_INT0_IRQHandler(void)
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
+
+        up.command = 0;
+        up.ticks = xTaskGetTickCountFromISR();
 
         xQueueSendFromISR(menu_command_queue, (void *)&up, &xHigherPriorityWoken);
 
@@ -87,6 +81,9 @@ extern "C"
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
 
+        down.command = 1;
+        down.ticks = xTaskGetTickCountFromISR();
+
         xQueueSendFromISR(menu_command_queue, (void *)&down, &xHigherPriorityWoken);
 
         Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
@@ -98,6 +95,9 @@ extern "C"
     void PIN_INT2_IRQHandler(void)
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
+
+        ok.command = 2;
+        ok.ticks = xTaskGetTickCountFromISR();
 
         xQueueSendFromISR(menu_command_queue, (void *)&ok, &xHigherPriorityWoken);
 
@@ -115,6 +115,8 @@ extern "C"
 /* Number of bytes to read/write */
 #define NUM_BYTES 4
 
+TaskHandle_t taskHandleForEepromRead = NULL;
+
 void vEEPROMwrite(void *params)
 {
 	(void) params;
@@ -126,7 +128,7 @@ void vEEPROMwrite(void *params)
 	while(1){
 
 		// Get the setpoint, suspend afterwards
-		setpoint_PPM = 132;
+		xQueueReceive(sendNewSetpointToEepromQueue, &setpoint_PPM, portMAX_DELAY);
 
 		// Disable FreeRTOS scheduler
 		vTaskSuspendAll();
@@ -177,7 +179,10 @@ void vEEPROMread(void *params)
 		// Resume FreeRTOS scheduler
 		xTaskResumeAll();
 
+        xQueueSend(sendReadSetpointQueue, &setpoint_PPM, portMAX_DELAY);
+
 		// Send setpoint
+        vTaskSuspend(taskHandleForEepromRead);
 	}
 }
 
@@ -201,17 +206,9 @@ void rotaryTask(void *params)
 
 int main(void)
 {
-#if defined(__USE_LPCOPEN)
-    // Read clock settings and update SystemCoreClock variable
     SystemCoreClockUpdate();
-#if !defined(NO_BOARD_LIB)
-    // Set up and initialize all required blocks and
-    // functions related to the board hardware
     Board_Init();
-    // Set the LED to the state of "On"
     Board_LED_Set(0, true);
-#endif
-#endif
 
     heap_monitor_setup();
 
@@ -231,10 +228,12 @@ int main(void)
     // set the priority level of the interrupt
     // The level must be equal or lower than the maximum priority specified in FreeRTOS config
     // Note that in a Cortex-M3 a higher number indicates lower interrupt priority
-    NVIC_SetPriority( RITIMER_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1 );
+    NVIC_SetPriority(RITIMER_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1);
 
-    menu_command_queue = xQueueCreate(5, sizeof(int32_t));
-    strings_to_print_queue = xQueueCreate(5, sizeof(LcdStringsStruct));
+    menu_command_queue = xQueueCreate(10, sizeof(MenuCommandWithTicksStruct));
+    strings_to_print_queue = xQueueCreate(10, sizeof(LcdStringsStruct));
+    sendReadSetpointQueue = xQueueCreate(1, sizeof(uint32_t));
+    sendNewSetpointToEepromQueue = xQueueCreate(5, sizeof(uint32_t));
 
     /* xTaskCreate(menu_command_task, "Menu UP task",
                 configMINIMAL_STACK_SIZE * 4,
@@ -264,12 +263,12 @@ int main(void)
     */
 
     xTaskCreate(vEEPROMwrite, "EEPROMwriteTask",
-                    configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
+                    configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 3UL),
                     (TaskHandle_t *) NULL);
 
     xTaskCreate(vEEPROMread, "EEPROMreadTask",
-                    configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
-                    (TaskHandle_t *) NULL);
+                    configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 4UL),
+                    (TaskHandle_t *) &taskHandleForEepromRead);
 
     // Initialize PININT driver
     Chip_PININT_Init(LPC_GPIO_PIN_INT);
@@ -302,14 +301,6 @@ int main(void)
     Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
     NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
     NVIC_EnableIRQ(PIN_INT2_IRQn);
-
-    // xTaskCreate(interruptResponseTask, "interruptTask",
-    //             configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
-    //             (TaskHandle_t *)NULL);
-
-    /* Start the scheduler */
-
-    Board_UARTPutSTR("Starting Scheduler.. \r\n");
 
     xTaskCreate(menu_operate_task, "Menu operate task",
                 configMINIMAL_STACK_SIZE * 4,
