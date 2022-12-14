@@ -35,6 +35,7 @@
 #include "tasks/lcd_display_task.h"
 #include "menu/menu_tasks.h"
 
+#include "solenoid.h"
 
 /**
  * TODO: delete?
@@ -124,76 +125,90 @@ void PIN_INT2_IRQHandler(void)
 /* Read/write buffer  */
 uint32_t buffer[NUM_BYTES / sizeof(uint32_t)];
 
+/* Atomic variable for setpoint */
+std::atomic<uint32_t> atom_setpoint;
+
+/* Global semaphore */
+SemaphoreHandle_t new_setpoint_available;
+
 TaskHandle_t taskHandleForEepromRead = NULL;
 
 void vEEPROMwrite(void *params)
 {
 	(void) params;
-
+	
 	uint8_t ret_code;
-	uint8_t *ptr = (uint8_t *) buffer;
+	uint8_t msg[4];
 	uint32_t setpoint_PPM;
-
+	
 	while(1){
-
 		// Get the setpoint, suspend afterwards
 		xQueueReceive(sendNewSetpointToEepromQueue, &setpoint_PPM, portMAX_DELAY);
-
-		// Try
-		*ptr = (uint32_t)setpoint_PPM;
-
-		// Disable FreeRTOS scheduler
-		vTaskSuspendAll();
-
-		// uint32_t setpoint_PPM --> uint8_t array
-		// msg[0] = (setpoint_PPM & 0x000000ff);
-		// msg[1] = (setpoint_PPM & 0x0000ff00) >> 8;
-		// msg[2] = (setpoint_PPM & 0x00ff0000) >> 16;
-		// msg[3] = (setpoint_PPM & 0xff000000) >> 24;
-
-		ret_code = Chip_EEPROM_Write(EEPROM_ADDR, ptr, NUM_BYTES);
-
-		if(ret_code == IAP_CMD_SUCCESS) {
-			// EEPROM Write passed
-		} else {
-			// EEPROM Write failed
+		
+		// Gets rid of a write on boot
+		if (setpoint_PPM > 0) {
+			// Disable FreeRTOS scheduler
+			vTaskSuspendAll();
+			
+			// uint32_t setpoint_PPM --> uint8_t array
+			msg[0] = (setpoint_PPM & 0x000000ff);
+			msg[1] = (setpoint_PPM & 0x0000ff00) >> 8;
+			msg[2] = (setpoint_PPM & 0x00ff0000) >> 16;
+			msg[3] = (setpoint_PPM & 0xff000000) >> 24;
+			
+			ret_code = Chip_EEPROM_Write(EEPROM_ADDR, msg, NUM_BYTES);
+			
+			if(ret_code == IAP_CMD_SUCCESS) {
+				// EEPROM Write passed
+			} else {
+				// EEPROM Write failed
+			}
+			
+			// Resume FreeRTOS scheduler
+			xTaskResumeAll();
+			
+			// New setpoint setting available
+			atom_setpoint = setpoint_PPM;
+			xSemaphoreGive(new_setpoint_available);
 		}
-
-		// Resume FreeRTOS scheduler
-		xTaskResumeAll();
 	}
 }
 
 void vEEPROMread(void *params)
 {
 	(void) params;
-
+	
 	uint8_t ret_code;
-	uint8_t *ptr = (uint8_t *) buffer;
+	uint8_t msg[4];
 	uint32_t setpoint_PPM;
-
+	
 	while(1){
-
 		// Disable FreeRTOS scheduler
 		vTaskSuspendAll();
-
-		ret_code = Chip_EEPROM_Read(EEPROM_ADDR, ptr, NUM_BYTES);
-
+		
+		ret_code = Chip_EEPROM_Read(EEPROM_ADDR, msg, NUM_BYTES);
+		
 		if(ret_code == IAP_CMD_SUCCESS) {
 			// EEPROM read passed
 		} else {
 			// EEPROM read failed
 		}
-
+		
 		// Get value into setpoint_PPM
-		setpoint_PPM = (int)*ptr;
-
+		setpoint_PPM = (msg[0] & 0x000000ff) | (msg[1] & 0x0000ffff) << 8 |
+		        (msg[2] & 0x00ffffff) << 16 | (msg[3] & 0xffffffff) << 24;
+		
 		// Resume FreeRTOS scheduler
 		xTaskResumeAll();
-
-		xQueueSend(sendReadSetpointQueue, &setpoint_PPM, portMAX_DELAY);
-
+		
 		// Send setpoint
+		xQueueSend(sendReadSetpointQueue, &setpoint_PPM, portMAX_DELAY);
+		
+		// New setpoint setting available
+		atom_setpoint = setpoint_PPM;
+		xSemaphoreGive(new_setpoint_available);
+		
+		// Suspend task
 		vTaskSuspend(taskHandleForEepromRead);
 	}
 }
@@ -247,6 +262,8 @@ int main(void)
 	strings_to_print_queue = xQueueCreate(10, sizeof(LcdStringsStruct));
 	sendReadSetpointQueue = xQueueCreate(1, sizeof(uint32_t));
 	sendNewSetpointToEepromQueue = xQueueCreate(5, sizeof(uint32_t));
+
+	new_setpoint_available = xSemaphoreCreateBinary();
 
 	/* xTaskCreate(menu_command_task, "Menu UP task",
                 configMINIMAL_STACK_SIZE * 4,
@@ -322,6 +339,12 @@ int main(void)
 			(TaskHandle_t *)nullptr);
 
 	xTaskCreate(lcd_display_task, "LCD print task",
+			configMINIMAL_STACK_SIZE * 4,
+			(void *)nullptr,
+			(tskIDLE_PRIORITY + 1UL),
+			(TaskHandle_t *)nullptr);
+
+	xTaskCreate(solenoid, "Solenoid control task",
 			configMINIMAL_STACK_SIZE * 4,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),

@@ -69,6 +69,7 @@ public:
 	void readRegisters();
 
 	SemaphoreHandle_t data_ready;
+	SemaphoreHandle_t co2_ready;
 private:
 	Fmutex mutex;
 	ModbusInterface co2Interface;
