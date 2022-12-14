@@ -53,11 +53,6 @@ extern "C" {
 #define mqttTOPIC_COUNT                       ( 1 )
 
 /**
- * @brief The MQTT message published in this example.
- */
-#define mqttMESSAGE                           "Hello World!"
-
-/**
  * @brief Dimensions a file scope buffer currently used to send and receive MQTT data
  * from a socket.
  */

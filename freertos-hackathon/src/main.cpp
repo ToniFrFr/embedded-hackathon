@@ -132,13 +132,9 @@ void task1(void *params)
 }
 
 void vConnectionTask(void *pvParams) {
-    uint32_t ulPublishCount = 0U, ulTopicCount = 0U;
-    const uint32_t ulMaxPublishCount = 5UL;
     NetworkContext_t xNetworkContext = { 0 };
     PlaintextTransportParams_t xPlaintextTransportParams = { 0 };
     MQTTContext_t xMQTTContext;
-    MQTTStatus_t xMQTTStatus;
-    PlaintextTransportStatus_t xNetworkStatus;
     bool methodSuccess;
     std::string publishPayload;
 
@@ -157,7 +153,7 @@ void vConnectionTask(void *pvParams) {
 			if(methodSuccess) {
 				printf("Broker connect success \n");
 				publishPayload = mqttInterface.GeneratePublishPayload(600, 55, 21, 50, 650);
-				methodSuccess = mqttInterface.Publish("test/hello", "hello world from lpc", &xMQTTContext);
+				methodSuccess = mqttInterface.Publish(appconfigMQTT_TOPIC, publishPayload, &xMQTTContext);
 				if(methodSuccess) {
 					printf("Publish success \n");
 				} else {
@@ -175,7 +171,7 @@ void vConnectionTask(void *pvParams) {
 
 		printf("Disconnect success: %d \n", methodSuccess);
 
-		vTaskDelay(pdMS_TO_TICKS(5000));
+		vTaskDelay(pdMS_TO_TICKS(appconfigMQTT_SEND_INTERVAL));
 
 	}
 

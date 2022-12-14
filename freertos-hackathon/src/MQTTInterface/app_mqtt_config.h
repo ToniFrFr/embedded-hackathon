@@ -78,6 +78,8 @@ extern void vLoggingPrintf( const char * pcFormatString,
 
 #define appconfigMQTT_BROKER_PORT					1883
 
+#define appconfigMQTT_SEND_INTERVAL 5000
+
 #else
 //#define appconfigMQTT_BROKER_ENDPOINT				"192.168.1.254"
 #define appconfigMQTT_BROKER_ENDPOINT "mqtt3.thingspeak.com"
@@ -93,6 +95,8 @@ extern void vLoggingPrintf( const char * pcFormatString,
 #define appconfigSECRET_MQTT_PASSWORD "qKxqzEzD+xMf2LMg0SU24WYk"
 
 #define appconfigMQTT_BROKER_PORT					1883
+
+#define appconfigMQTT_SEND_INTERVAL 300000
 
 #endif
 

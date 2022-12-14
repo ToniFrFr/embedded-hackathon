@@ -186,7 +186,7 @@ bool MQTTInterface::Publish(std::string topic, std::string payload, MQTTContext_
 	}
 }
 std::string MQTTInterface::GeneratePublishPayload(int co2, int rh, int temp, int valveState, uint32_t setpoint) {
-	std::string payload = "field1=" + std::to_string(co2) + "&field2=" + std::to_string(rh) + "&field3=" + std::to_string(temp) + "&field4=" + std::to_string(valveState) + "&field5" + std::to_string(setpoint);
+	std::string payload = "field1=" + std::to_string(co2) + "&field2=" + std::to_string(rh) + "&field3=" + std::to_string(temp) + "&field4=" + std::to_string(valveState) + "&field5=" + std::to_string(setpoint);
 	return payload;
 }
 
