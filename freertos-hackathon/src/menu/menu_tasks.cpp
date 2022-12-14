@@ -31,6 +31,8 @@ void menu_operate_task(void *params)
 {
     extern QueueHandle_t menu_command_queue;
     extern QueueHandle_t strings_to_print_queue;
+    extern QueueHandle_t sendReadSetpointQueue;
+    extern QueueHandle_t sendNewSetpointToEepromQueue;
 
     IntEdit *co2_setpoint = new IntEdit("CO2 setpoint", 0, 2000, 5);
     ConstIntEdit *co2_measured = new ConstIntEdit("CO2");
@@ -47,8 +49,24 @@ void menu_operate_task(void *params)
     LcdStringsStruct structToSend;
     TickType_t lastTickCount = 0;
 
+    BaseType_t setpointReceiveStatus;
+    uint32_t setpointAtBoot;
+    uint32_t currentSetpoint;
     while (true)
     {
+        setpointReceiveStatus = xQueueReceive(sendReadSetpointQueue, &setpointAtBoot, 0);
+        if (setpointReceiveStatus == pdPASS)
+        {
+            currentSetpoint = setpointAtBoot;
+            co2_setpoint->setValue(setpointAtBoot);
+        }
+
+        if (co2_setpoint->getValue() != currentSetpoint)
+        {
+            currentSetpoint = co2_setpoint->getValue();
+            xQueueSend(sendNewSetpointToEepromQueue, &currentSetpoint, portMAX_DELAY);
+        }
+
         xQueueReceive(menu_command_queue, &receivedCommand, portMAX_DELAY);
 
         if ((receivedCommand.ticks - lastTickCount) > pdMS_TO_TICKS(40))
