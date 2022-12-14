@@ -214,7 +214,7 @@ void vConnectionTask(void *pvParams) {
 			methodSuccess = mqttInterface.ConnectToMQTTBroker(&xBuffer,&xMQTTContext, &xNetworkContext);
 			if(methodSuccess) {
 				printf("Broker connect success \n");
-				publishPayload = mqttInterface.GeneratePublishPayload(600, 55, 21, 50, 650);
+				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), 50, 650);
 				methodSuccess = mqttInterface.Publish(appconfigMQTT_TOPIC, publishPayload, &xMQTTContext);
 				if(methodSuccess) {
 					printf("Publish success \n");
