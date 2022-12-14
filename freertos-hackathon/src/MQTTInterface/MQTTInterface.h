@@ -115,7 +115,7 @@ public:
 	void ChangeAPCredentials(char * ssid, char * password);
 	void ChangeBrokerIPAndPort(char * brokerIP, int brokerPort);
 	bool Publish(std::string topic, std::string payload, MQTTContext_t *pxMQTTContext);
-	std::string GeneratePublishPayload(int co2, int rh, int temp, int valveState, uint32_t setpoint);
+	std::string GeneratePublishPayload(int co2, int rh, int temp, bool valveState, uint32_t setpoint);
 private:
 	std::string SSID;
 	std::string PASSWORD;

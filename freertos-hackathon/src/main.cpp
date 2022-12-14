@@ -42,6 +42,7 @@
  * The following is required if runtime statistics are to be collected
  * Copy the code to the source file where other you initialize hardware
  */
+extern bool openValve;
 extern "C"
 {
 void vConfigureTimerForRunTimeStats(void)
@@ -214,7 +215,7 @@ void vConnectionTask(void *pvParams) {
 			methodSuccess = mqttInterface.ConnectToMQTTBroker(&xBuffer,&xMQTTContext, &xNetworkContext);
 			if(methodSuccess) {
 				printf("Broker connect success \n");
-				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), 50, 650);
+				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), openValve, atom_setpoint);
 				methodSuccess = mqttInterface.Publish(appconfigMQTT_TOPIC, publishPayload, &xMQTTContext);
 				if(methodSuccess) {
 					printf("Publish success \n");
@@ -405,7 +406,7 @@ int main(void)
 	// Start the timer
 	xTimerStart(timer, 0);
 
-	xTaskCreate(vConnectionTask, "vConnTask", 1024, NULL, (tskIDLE_PRIORITY + 2UL),
+	xTaskCreate(vConnectionTask, "vConnTask", 1024, NULL, (tskIDLE_PRIORITY + 3UL),
 			(TaskHandle_t *) NULL);
 	/* Start the scheduler */
 	vTaskStartScheduler();
