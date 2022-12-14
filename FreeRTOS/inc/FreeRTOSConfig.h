@@ -54,7 +54,7 @@
 #define configTOTAL_HEAP_SIZE		( ( size_t ) ( 6 * 1024 ) )
 #define configMAX_TASK_NAME_LEN		( 12 )
 #define configUSE_TRACE_FACILITY	1
-#define configUSE_STATS_FORMATTING_FUNCTIONS 1    
+#define configUSE_STATS_FORMATTING_FUNCTIONS 1
 #define configUSE_16_BIT_TICKS		0
 #define configIDLE_SHOULD_YIELD		0
 #define configUSE_CO_ROUTINES 		0
@@ -70,7 +70,7 @@
 #define configGENERATE_RUN_TIME_STATS	1
 #define configUSE_MALLOC_FAILED_HOOK	1
     
-#define configUSE_TIMERS                0
+#define configUSE_TIMERS                1
 #define configUSE_NEWLIB_REENTRANT      1
 
 #define configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H 1
@@ -164,5 +164,9 @@ void vConfigureTimerForRunTimeStats( void ) {
 #define vPortSVCHandler SVC_Handler
 #define xPortPendSVHandler PendSV_Handler
 #define xPortSysTickHandler SysTick_Handler
+
+#define configTIMER_TASK_PRIORITY (configMAX_PRIORITIES - 1)
+#define configTIMER_QUEUE_LENGTH 10
+#define configTIMER_TASK_STACK_DEPTH (configMINIMAL_STACK_SIZE * 4)
 
 #endif /* FREERTOS_CONFIG_H */
