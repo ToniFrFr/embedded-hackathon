@@ -107,6 +107,11 @@ int IntEdit::getValue()
     return this->value;
 }
 
+int IntEdit::getEditedValue()
+{
+    return this->value + this->edit;
+}
+
 void IntEdit::setValue(int value)
 {
     if (value > this->upperLimit)

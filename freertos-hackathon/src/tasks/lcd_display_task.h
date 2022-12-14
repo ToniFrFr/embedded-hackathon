@@ -1,6 +1,18 @@
 #ifndef LCD_DISPLAY_TASK_H_
 #define LCD_DISPLAY_TASK_H_
 
+#include "chip.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
+#include "Fmutex.h"
+
+#include "ModbusRegister.h"
+#include "DigitalIoPin.h"
+#include "LiquidCrystal.h"
+
+#include "../menu/menu_tasks.h"
+
 enum MENUITEM
 {
 

@@ -67,6 +67,10 @@ int ConstIntEdit::getValue()
     return this->value;
 }
 
+int ConstIntEdit::getEditedValue()
+{
+}
+
 void ConstIntEdit::setValue(int value)
 {
     this->value = value;

@@ -1,13 +1,3 @@
-#include "chip.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "semphr.h"
-#include "Fmutex.h"
-
-#include "ModbusRegister.h"
-#include "DigitalIoPin.h"
-#include "LiquidCrystal.h"
-
 #include "lcd_display_task.h"
 
 void lcd_display_task(void *params)
@@ -22,15 +12,59 @@ void lcd_display_task(void *params)
     DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
     LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
 
-    LcdDataStruct received_struct;
+    EditTypeSentStruct received_struct;
+
+    char string[17];
 
     while (true)
     {
         xQueueReceive(strings_to_print_queue, &received_struct, portMAX_DELAY);
 
-        if (received_struct.line_1[0] != '\0' || received_struct.line_2[0] != '\0')
+        lcd->clear();
+
+        switch (received_struct.editType)
         {
-            lcd->clear();
+        case EDIT_TYPE::SETPOINT_EDIT:
+            snprintf(string, 17, "    [%6d]    ", received_struct.value);
+            lcd->setCursor(0, 0);
+            lcd->print("Setpoint");
+            lcd->setCursor(0, 1);
+            lcd->print(string);
+            break;
+        case EDIT_TYPE::SETPOINT_FIXED:
+            snprintf(string, 17, "     %6d     ", received_struct.value);
+            lcd->setCursor(0, 0);
+            lcd->print("Setpoint");
+            lcd->setCursor(0, 1);
+            lcd->print(string);
+            break;
+        case EDIT_TYPE::CO2:
+            snprintf(string, 17, "     %6d     ", received_struct.value);
+            lcd->setCursor(0, 0);
+            lcd->print("CO2");
+            lcd->setCursor(0, 1);
+            lcd->print(string);
+            break;
+        case EDIT_TYPE::TEMPERATURE:
+            snprintf(string, 17, "     %6d     ", received_struct.value);
+            lcd->setCursor(0, 0);
+            lcd->print("Temperature");
+            lcd->setCursor(0, 1);
+            lcd->print(string);
+            break;
+        case EDIT_TYPE::HUMIDITY:
+            snprintf(string, 17, "     %6d     ", received_struct.value);
+            lcd->setCursor(0, 0);
+            lcd->print("Humidity");
+            lcd->setCursor(0, 1);
+            lcd->print(string);
+            break;
+        default:
+            break;
+        }
+
+/*         if (received_struct.line_1[0] != '\0' || received_struct.line_2[0] != '\0')
+        {
         }
 
         if (received_struct.line_1[0] != '\0')
@@ -43,6 +77,6 @@ void lcd_display_task(void *params)
         {
             lcd->setCursor(0, 1);
             lcd->print(received_struct.line_2);
-        }
+        } */
     }
 }

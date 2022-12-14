@@ -27,6 +27,8 @@ public:
     virtual void cancel() = 0;
     virtual void setFocus(bool focus) = 0;
     virtual bool getFocus() = 0;
+    virtual int getValue() = 0;
+    virtual int getEditedValue() = 0;
     virtual LcdDataStruct display() = 0;
 };
 

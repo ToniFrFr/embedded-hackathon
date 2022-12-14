@@ -28,7 +28,6 @@
 #include "tasks/lcd_display_task.h"
 #include "menu/menu_tasks.h"
 
-
 /**
  * TODO: delete?
  * The following is required if runtime statistics are to be collected
@@ -51,9 +50,7 @@ QueueHandle_t strings_to_print_queue;
 QueueHandle_t newSetpointQueue;
 
 // Command structs
-MenuCommandWithTicksStruct up;
-MenuCommandWithTicksStruct down;
-MenuCommandWithTicksStruct ok;
+MenuCommandWithTicksStruct menuCommandStruct;
 
 // Interrupt handlers for rotary encoder.
 extern "C"
@@ -63,10 +60,10 @@ extern "C"
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
 
-        up.command = 0;
-        up.ticks = xTaskGetTickCountFromISR();
+        menuCommandStruct.command = 0;
+        menuCommandStruct.ticks = xTaskGetTickCountFromISR();
 
-        xQueueSendFromISR(menu_command_queue, (void *)&up, &xHigherPriorityWoken);
+        xQueueSendFromISR(menu_command_queue, (void *)&menuCommandStruct, &xHigherPriorityWoken);
 
         Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
 
@@ -78,10 +75,10 @@ extern "C"
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
 
-        down.command = 1;
-        down.ticks = xTaskGetTickCountFromISR();
+        menuCommandStruct.command = 1;
+        menuCommandStruct.ticks = xTaskGetTickCountFromISR();
 
-        xQueueSendFromISR(menu_command_queue, (void *)&down, &xHigherPriorityWoken);
+        xQueueSendFromISR(menu_command_queue, (void *)&menuCommandStruct, &xHigherPriorityWoken);
 
         Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
 
@@ -93,10 +90,10 @@ extern "C"
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
 
-        ok.command = 2;
-        ok.ticks = xTaskGetTickCountFromISR();
+        menuCommandStruct.command = 2;
+        menuCommandStruct.ticks = xTaskGetTickCountFromISR();
 
-        xQueueSendFromISR(menu_command_queue, (void *)&ok, &xHigherPriorityWoken);
+        xQueueSendFromISR(menu_command_queue, (void *)&menuCommandStruct, &xHigherPriorityWoken);
 
         Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
 
@@ -119,8 +116,8 @@ int main(void)
     // Note that in a Cortex-M3 a higher number indicates lower interrupt priority
     NVIC_SetPriority(RITIMER_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1);
 
-    menu_command_queue = xQueueCreate(10, sizeof(MenuCommandWithTicksStruct));
-    strings_to_print_queue = xQueueCreate(10, sizeof(LcdDataStruct));
+    menu_command_queue = xQueueCreate(1, sizeof(MenuCommandWithTicksStruct));
+    strings_to_print_queue = xQueueCreate(1, sizeof(EditTypeSentStruct));
     newSetpointQueue = xQueueCreate(5, sizeof(uint32_t));
 
     // Initialize PININT driver
@@ -135,7 +132,7 @@ int main(void)
     Chip_INMUX_PinIntSel(0, 0, 5);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(0));
-    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(0));
+    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH(0));
     NVIC_ClearPendingIRQ(PIN_INT0_IRQn);
     NVIC_EnableIRQ(PIN_INT0_IRQn);
 
@@ -143,7 +140,7 @@ int main(void)
     Chip_INMUX_PinIntSel(1, 0, 6);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(1));
-    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(1));
+    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH(1));
     NVIC_ClearPendingIRQ(PIN_INT1_IRQn);
     NVIC_EnableIRQ(PIN_INT1_IRQn);
 
@@ -151,7 +148,7 @@ int main(void)
     Chip_INMUX_PinIntSel(2, 1, 8);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(2));
-    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
+    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH(2));
     NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
     NVIC_EnableIRQ(PIN_INT2_IRQn);
 

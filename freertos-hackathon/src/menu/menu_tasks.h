@@ -8,6 +8,21 @@ enum MENU
     OK
 };
 
+enum EDIT_TYPE
+{
+    SETPOINT_FIXED,
+    SETPOINT_EDIT,
+    CO2,
+    TEMPERATURE,
+    HUMIDITY
+};
+
+struct EditTypeSentStruct
+{
+    uint8_t editType;
+    uint32_t value;
+};
+
 struct MenuCommandWithTicksStruct
 {
     uint8_t command;

@@ -98,6 +98,8 @@ public:
      */
     int getValue();
 
+    int getEditedValue();
+
     /**
      * @brief Set the value of object
      *
