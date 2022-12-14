@@ -22,10 +22,7 @@ void lcd_display_task(void *params)
     DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
     LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
 
-    // configure display geometry
-    lcd->begin(16, 2);
-
-    LcdStringsStruct received_struct;
+    LcdDataStruct received_struct;
 
     while (true)
     {
@@ -40,16 +37,12 @@ void lcd_display_task(void *params)
         {
             lcd->setCursor(0, 0);
             lcd->print(received_struct.line_1);
-            Board_UARTPutSTR(received_struct.line_1);
-            Board_UARTPutSTR("\r\n");
         }
 
         if (received_struct.line_2[0] != '\0')
         {
             lcd->setCursor(0, 1);
             lcd->print(received_struct.line_2);
-            Board_UARTPutSTR(received_struct.line_2);
-            Board_UARTPutSTR("\r\n");
         }
     }
 }

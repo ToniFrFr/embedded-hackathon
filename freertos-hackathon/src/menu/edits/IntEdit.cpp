@@ -73,9 +73,9 @@ bool IntEdit::getFocus()
     return this->focus;
 }
 
-LcdStringsStruct IntEdit::display()
+LcdDataStruct IntEdit::display()
 {
-    LcdStringsStruct localStruct;
+    LcdDataStruct localStruct;
 
     char string[17];
 

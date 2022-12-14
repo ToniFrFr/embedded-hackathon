@@ -50,7 +50,7 @@ void SimpleMenu::event(MenuItem::menuEvent e)
     }
 }
 
-PropertyEdit* SimpleMenu::getCurrentPropertyEdit()
+PropertyEdit* SimpleMenu::getSelectedPropertyEdit()
 {
     return items[position]->getPropertyEdit();
 }

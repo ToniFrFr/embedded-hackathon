@@ -84,7 +84,7 @@ public:
      * @brief Display object on LCD
      *
      */
-    LcdStringsStruct display();
+    LcdDataStruct display();
 
     /**
      * @brief Get current value

@@ -50,7 +50,7 @@ public:
      */
     void event(MenuItem::menuEvent e);
 
-    PropertyEdit* getCurrentPropertyEdit();
+    PropertyEdit* getSelectedPropertyEdit();
 
 private:
     std::vector<MenuItem *> items;

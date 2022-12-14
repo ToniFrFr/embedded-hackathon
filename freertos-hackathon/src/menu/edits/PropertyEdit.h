@@ -27,7 +27,7 @@ public:
     virtual void cancel() = 0;
     virtual void setFocus(bool focus) = 0;
     virtual bool getFocus() = 0;
-    virtual LcdStringsStruct display() = 0;
+    virtual LcdDataStruct display() = 0;
 };
 
 #endif // PROPERTY_EDIT_H_
