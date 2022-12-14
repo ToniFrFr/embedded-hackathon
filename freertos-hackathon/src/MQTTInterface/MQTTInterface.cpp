@@ -20,7 +20,7 @@ uint32_t uxRandMQTT() {
 	return rand();
 }
 
-MQTTInterface::MQTTInterface(char * ssid, char * password, char * brokerIp, uint16_t brokerPort) : SSID(ssid), PASSWORD(password), BROKERPORT(brokerPort) {
+MQTTInterface::MQTTInterface(char * ssid, char * password, char * brokerIp, uint16_t brokerPort) : SSID(ssid), PASSWORD(password), BROKER_IP(brokerIp) {
 	// TODO Auto-generated constructor stub
 	this->ConnectionState = NotConnected;
 	this->BROKERPORT = brokerPort;
@@ -29,7 +29,7 @@ MQTTInterface::MQTTInterface(char * ssid, char * password, char * brokerIp, uint
 MQTTInterface::~MQTTInterface() {
 	// TODO Auto-generated destructor stub
 }
-void MQTTInterface::ConnectToMQTTServer(NetworkContext_t *pxNetworkContext) {
+bool MQTTInterface::ConnectToMQTTServer(NetworkContext_t *pxNetworkContext) {
 	PlaintextTransportStatus_t xNetworkStatus;
     BackoffAlgorithmStatus_t xBackoffAlgStatus = BackoffAlgorithmSuccess;
     BackoffAlgorithmContext_t xReconnectParams;
@@ -50,11 +50,13 @@ void MQTTInterface::ConnectToMQTTServer(NetworkContext_t *pxNetworkContext) {
             if( xBackoffAlgStatus == BackoffAlgorithmRetriesExhausted )
             {
                 LogError( ( "Connection to the broker failed, all attempts exhausted." ) );
+				printf("Connection to broker failed on all attempts \n");
             }
             else if( xBackoffAlgStatus == BackoffAlgorithmSuccess )
             {
                 LogWarn( ( "Connection to the broker failed. "
                            "Retrying connection with backoff and jitter." ) );
+				printf("Connection to broker failed, trying again \n");
                 vTaskDelay( pdMS_TO_TICKS( usNextRetryBackOff ) );
             }
 			this->ConnectionState = NotConnected;
@@ -62,10 +64,16 @@ void MQTTInterface::ConnectToMQTTServer(NetworkContext_t *pxNetworkContext) {
 			this->ConnectionState = ConnectedToServer;
 		}
 	} while (( xNetworkStatus != PLAINTEXT_TRANSPORT_SUCCESS ) && ( xBackoffAlgStatus == BackoffAlgorithmSuccess ));
-}
-void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer, MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext) {
-	this->ConnectionState = ConnectedToBroker;
 
+	if(ConnectionState == ConnectedToServer) {
+		printf("Connected to server\n");
+		return true;
+	} else {
+		printf("Connection to server failed...\n");
+		return false;
+	}
+}
+bool MQTTInterface::ConnectToMQTTBroker(MQTTFixedBuffer_t * pNetworkBuffer, MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext) {
 	MQTTStatus_t xResult;
 	MQTTConnectInfo_t xConnectInfo;
     bool xSessionPresent;
@@ -75,30 +83,32 @@ void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer
     xTransport.send = Plaintext_FreeRTOS_send;
     xTransport.recv = Plaintext_FreeRTOS_recv;
 
+	printf("Starting MQTT_Init()..\n");
+
 	xResult = MQTT_Init(pxMQTTContext, &xTransport, prvGetTimeMs, prvEventCallback, pNetworkBuffer);
 
+	if(xResult != MQTTSuccess) {
+		printf("Failed init, something wrong with init parameters...\n");
+		return false;
+	}
+
+	printf("MQTT_Init successful...\n");
+
 	 /* Many fields not used in this demo so start with everything at 0. */
-    //( void ) memset( ( void * ) &xConnectInfo, 0x00, sizeof( xConnectInfo ) );
-
-    /* Start with a clean session i.e. direct the MQTT broker to discard any
-     * previous session data. Also, establishing a connection with clean session
-     * will ensure that the broker does not store any data when this client
-     * gets disconnected. */
+    ( void ) memset( ( void * ) &xConnectInfo, 0x00, sizeof( xConnectInfo ) );
     xConnectInfo.cleanSession = true;
-
-    /* The client identifier is used to uniquely identify this MQTT client to
-     * the MQTT broker. In a production device the identifier can be something
-     * unique, such as a device serial number. */
     xConnectInfo.pClientIdentifier = appconfigCLIENT_IDENTIFIER;
     xConnectInfo.clientIdentifierLength = ( uint16_t ) strlen( appconfigCLIENT_IDENTIFIER );
-
-    /* Set MQTT keep-alive period. It is the responsibility of the application to ensure
-     * that the interval between Control Packets being sent does not exceed the Keep Alive value.
-     * In the absence of sending any other Control Packets, the Client MUST send a PINGREQ Packet. */
     xConnectInfo.keepAliveSeconds = mqttKEEP_ALIVE_TIMEOUT_SECONDS;
 
-    /* Send MQTT CONNECT packet to broker. LWT is not used in this demo, so it
-     * is passed as NULL. */
+	#ifndef appconfigTEST_ENV
+	xConnectInfo.pUserName = appconfigSECRET_MQTT_USERNAME;
+	xConnectInfo.userNameLength = ( uint16_t ) strlen(appconfigSECRET_MQTT_USERNAME);
+	xConnectInfo.pPassword = appconfigSECRET_MQTT_PASSWORD;
+	xConnectInfo.passwordLength = ( uint16_t ) strlen(appconfigSECRET_MQTT_PASSWORD); 
+	#endif
+
+	printf("Starting MQTT_Connect()....\n");
     xResult = MQTT_Connect( pxMQTTContext,
                             &xConnectInfo,
                             NULL,
@@ -106,11 +116,42 @@ void MQTTInterface::ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer
                             &xSessionPresent );
 	if (xResult == MQTTSuccess) {
 		this->ConnectionState = ConnectedToBroker;
+		printf("Connection to broker successful\n");
+		return true;
+	} else if(xResult == MQTTBadParameter) {
+		printf("Bad parameters with MQTT connect\n");
+		return false;
+	} else if(xResult == MQTTSendFailed) {
+		printf("MQTT connect send failed\n");
+		return false;
+	}  else if(xResult == MQTTRecvFailed) {
+		printf("MQTT connect receive failed\n");
+		return false;
+	} else if(xResult == MQTTNoMemory) {
+		printf("MQTT connect no memory\n");
+		return false;
+	} else if(xResult == MQTTNoDataAvailable) {
+		printf("MQTT connect no data available\n");
+		return false;
+	} else {
+		printf("Connection to broker failed\n");
+		return false;
 	}
 }
-void MQTTInterface::DisconnectFromMQTTServer(MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext) {
-	MQTT_Disconnect(pxMQTTContext);
-	Plaintext_FreeRTOS_Disconnect(pxNetworkContext);
+bool MQTTInterface::DisconnectFromMQTTServer(MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext) {
+	MQTTStatus_t xMQTTStatus;
+	PlaintextTransportStatus_t xNetworkStatus;
+	xMQTTStatus = MQTT_Disconnect(pxMQTTContext);
+	xNetworkStatus = Plaintext_FreeRTOS_Disconnect(pxNetworkContext);
+	
+	if(xMQTTStatus == MQTTSuccess && xNetworkStatus == PLAINTEXT_TRANSPORT_SUCCESS) {
+		printf("Disconnect success \n");
+		return true;
+	} else {
+		printf("Disconnect failed \n");
+		return false;
+	}
+	
 	this->ConnectionState = NotConnected;
 }
 void MQTTInterface::ChangeAPCredentials(char * ssid, char * password) {
@@ -126,7 +167,7 @@ bool MQTTInterface::Publish(std::string topic, std::string payload, MQTTContext_
     MQTTPublishInfo_t xMQTTPublishInfo;
 
 	/* Some fields are not used by this demo so start with everything at 0. */
-    //( void ) memset( ( void * ) &xMQTTPublishInfo, 0x00, sizeof( xMQTTPublishInfo ) );
+    ( void ) memset( ( void * ) &xMQTTPublishInfo, 0x00, sizeof( xMQTTPublishInfo ) );
 
 	xMQTTPublishInfo.qos = MQTTQoS0;
 	xMQTTPublishInfo.retain = false;
@@ -144,5 +185,8 @@ bool MQTTInterface::Publish(std::string topic, std::string payload, MQTTContext_
 		return false;
 	}
 }
-
+std::string MQTTInterface::GeneratePublishPayload(int co2, int rh, int temp, int valveState, uint32_t setpoint) {
+	std::string payload = "field1=" + std::to_string(co2) + "&field2=" + std::to_string(rh) + "&field3=" + std::to_string(temp) + "&field4=" + std::to_string(valveState) + "&field5" + std::to_string(setpoint);
+	return payload;
+}
 

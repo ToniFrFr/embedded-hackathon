@@ -9,6 +9,7 @@
 #define MQTTINTERFACE_H_
 
 #include <string>
+#include <string.h>
 #include "../networking/esp8266_socket.h"
 #include "app_mqtt_config.h"
 #include "FreeRTOS.h"
@@ -113,12 +114,13 @@ class MQTTInterface {
 public:
 	MQTTInterface(char * ssid, char * password, char * brokerIp, uint16_t brokerPort);
 	virtual ~MQTTInterface();
-	void ConnectToMQTTServer(NetworkContext_t * pxNetworkContext);
-	void ConnectToMQTTBroker(const MQTTFixedBuffer_t * pNetworkBuffer, MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext);
-	void DisconnectFromMQTTServer(MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext);
+	bool ConnectToMQTTServer(NetworkContext_t * pxNetworkContext);
+	bool ConnectToMQTTBroker(MQTTFixedBuffer_t * pNetworkBuffer, MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext);
+	bool DisconnectFromMQTTServer(MQTTContext_t *pxMQTTContext, NetworkContext_t * pxNetworkContext);
 	void ChangeAPCredentials(char * ssid, char * password);
 	void ChangeBrokerIPAndPort(char * brokerIP, int brokerPort);
 	bool Publish(std::string topic, std::string payload, MQTTContext_t *pxMQTTContext);
+	std::string GeneratePublishPayload(int co2, int rh, int temp, int valveState, uint32_t setpoint);
 private:
 	std::string SSID;
 	std::string PASSWORD;

@@ -62,43 +62,43 @@ extern void vLoggingPrintf( const char * pcFormatString,
  *
  * #define democonfigCLIENT_IDENTIFIER				"insert here."
  */
+
+
+#define appconfigTEST_ENV
+#ifdef appconfigTEST_ENV
+
 #define appconfigCLIENT_IDENTIFIER				"ESP-MQTT-GROUP-08"
-#define TEST_ENV
-#ifdef TEST_ENV
-/**
- * @brief MQTT broker end point to connect to.
- *
- * @note If you would like to setup an MQTT broker for running this demo,
- * please see `mqtt_broker_setup.txt`.
- *
- * #define democonfigMQTT_BROKER_ENDPOINT				"insert here."
- */
+
 #define appconfigMQTT_BROKER_ENDPOINT				"192.168.65.42"
 
-/**
- * @brief The port to use for the demo.
- *
- * #define democonfigMQTT_BROKER_PORT					( insert here. )
- */
+#define WIFI_SSID	    "OPMIKAEL"
+#define WIFI_PASS       "pellemiljoona"
+
+#define appconfigMQTT_TOPIC "test/values"
+
 #define appconfigMQTT_BROKER_PORT					1883
 
 #else
-#define appconfigMQTT_BROKER_ENDPOINT				"192.168.1.254"
+//#define appconfigMQTT_BROKER_ENDPOINT				"192.168.1.254"
+#define appconfigMQTT_BROKER_ENDPOINT "mqtt3.thingspeak.com"
 
-/**
- * @brief The port to use for the demo.
- *
- * #define democonfigMQTT_BROKER_PORT					( insert here. )
- */
+#define WIFI_SSID	    "SmartIotMQTT"
+#define WIFI_PASS       "SmartIot"
+
+#define appconfigMQTT_TOPIC "channels/1955513/publish"
+
+#define CHANNEL_ID "1955513"
+#define appconfigSECRET_MQTT_USERNAME "DCAmDzgFFhoKKy8kCBw3NQA"
+#define appconfigCLIENT_IDENTIFIER "DCAmDzgFFhoKKy8kCBw3NQA"
+#define appconfigSECRET_MQTT_PASSWORD "qKxqzEzD+xMf2LMg0SU24WYk"
+
 #define appconfigMQTT_BROKER_PORT					1883
 
 #endif
 
 
-#if 0
-#define WIFI_SSID	    "SmartIotMQTT"
-#define WIFI_PASS       "SmartIot"
-#endif
+
+
 
 
 #endif /* APP_MQTT_CONFIG_H_ */

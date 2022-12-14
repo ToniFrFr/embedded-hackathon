@@ -46,7 +46,6 @@ void vConfigureTimerForRunTimeStats( void ) {
 /* end runtime statictics collection */
 
 /*-----MQTT GLOBAL FUNCTIONS AND DEFINITIONS-----*/
-uint32_t ulGlobalEntryTimeMs;
 static uint8_t ucSharedBuffer[ mqttSHARED_BUFFER_SIZE ];
 
 static MQTTFixedBuffer_t xBuffer =
@@ -54,6 +53,8 @@ static MQTTFixedBuffer_t xBuffer =
     .pBuffer = ucSharedBuffer,
     .size    = mqttSHARED_BUFFER_SIZE
 };
+
+uint32_t ulGlobalEntryTimeMs;
 uint32_t prvGetTimeMs( void )
 {
     TickType_t xTickCount = 0;
@@ -138,18 +139,41 @@ void vConnectionTask(void *pvParams) {
     MQTTContext_t xMQTTContext;
     MQTTStatus_t xMQTTStatus;
     PlaintextTransportStatus_t xNetworkStatus;
+    bool methodSuccess;
+    std::string publishPayload;
 
     xNetworkContext.pParams = &xPlaintextTransportParams;
 
-	MQTTInterface mqttInterface("OPMIKAEL", "pellemiljoona", appconfigMQTT_BROKER_ENDPOINT, appconfigMQTT_BROKER_PORT);
+	MQTTInterface mqttInterface(WIFI_SSID, WIFI_PASS, appconfigMQTT_BROKER_ENDPOINT, appconfigMQTT_BROKER_PORT);
 
 	ulGlobalEntryTimeMs = prvGetTimeMs();
 
 	for(;;) {
-		mqttInterface.ConnectToMQTTServer(&xNetworkContext);
-		mqttInterface.ConnectToMQTTBroker(&xBuffer, &xMQTTContext, &xNetworkContext);
-		mqttInterface.Publish("test/hello", "hello world", &xMQTTContext);
-		mqttInterface.DisconnectFromMQTTServer(&xMQTTContext, &xNetworkContext);
+		methodSuccess = mqttInterface.ConnectToMQTTServer(&xNetworkContext);
+
+		if(methodSuccess) {
+			printf("Server connnect success \n");
+			methodSuccess = mqttInterface.ConnectToMQTTBroker(&xBuffer,&xMQTTContext, &xNetworkContext);
+			if(methodSuccess) {
+				printf("Broker connect success \n");
+				publishPayload = mqttInterface.GeneratePublishPayload(600, 55, 21, 50, 650);
+				methodSuccess = mqttInterface.Publish("test/hello", "hello world from lpc", &xMQTTContext);
+				if(methodSuccess) {
+					printf("Publish success \n");
+				} else {
+					printf("Publish failed \n");
+				}
+			} else {
+				printf("Broker connect failed \n");
+			}
+		} else {
+			printf("Server connect failed \n");
+		}
+
+
+		methodSuccess = mqttInterface.DisconnectFromMQTTServer(&xMQTTContext, &xNetworkContext);
+
+		printf("Disconnect success: %d \n", methodSuccess);
 
 		vTaskDelay(pdMS_TO_TICKS(5000));
 
@@ -182,7 +206,7 @@ int main(void) {
 	xTaskCreate(task1, "test",
 			configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *) NULL);
-	xTaskCreate(vConnectionTask, "vConnTask", 512, NULL, (tskIDLE_PRIORITY + 1UL),
+	xTaskCreate(vConnectionTask, "vConnTask", 1024, NULL, (tskIDLE_PRIORITY + 2UL),
 			(TaskHandle_t *) NULL);
 
 	/* Start the scheduler */
