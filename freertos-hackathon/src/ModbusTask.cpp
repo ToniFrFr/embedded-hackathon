@@ -25,7 +25,7 @@ SensorState::SensorState(uint8_t co2DevAddr, uint8_t tempHumidDevAddr,
 		uint16_t co2RegAddr, uint16_t tempRegAddr, uint16_t humidRegAddr,
 		uint16_t baudRate)
 	: co2Interface(co2DevAddr, baudRate), tempHumidInterface(tempHumidDevAddr, baudRate),
-	co2Register(co2RegAddr), tempRegister(tempRegAddr), humidityRegister(humidRegAddr), data_ready(xSemaphoreCreateBinary()) {}
+	co2Register(co2RegAddr), tempRegister(tempRegAddr), humidityRegister(humidRegAddr), data_ready(xSemaphoreCreateBinary()), co2_ready(xSemaphoreCreateBinary()) {}
 
 SensorState::~SensorState() {}
 
@@ -58,6 +58,7 @@ void SensorState::readRegisters() {
 	if(t_humidity != INT_MIN) {
 		this->humidity = t_humidity;
 	}
+	xSemaphoreGive(this->co2_ready);
 	xSemaphoreGive(this->data_ready);
 }
 

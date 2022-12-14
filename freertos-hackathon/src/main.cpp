@@ -35,6 +35,8 @@
 #include "tasks/lcd_display_task.h"
 #include "menu/menu_tasks.h"
 
+#include "solenoid.h"
+
 /**
  * TODO: delete?
  * The following is required if runtime statistics are to be collected
@@ -59,6 +61,8 @@ QueueHandle_t sendNewSetpointToEepromQueue;
 
 // Command structs
 MenuCommandWithTicksStruct menuCommandStruct;
+
+extern std::atomic<bool> valveOpen;
 
 // Interrupt handlers for rotary encoder.
 extern "C"
@@ -120,97 +124,91 @@ extern "C"
 /* Read/write buffer  */
 uint32_t buffer[NUM_BYTES / sizeof(uint32_t)];
 
+/* Atomic variable for setpoint */
+std::atomic<uint32_t> atom_setpoint;
+
+/* Global semaphore */
+SemaphoreHandle_t new_setpoint_available;
+
 TaskHandle_t taskHandleForEepromRead = NULL;
 
 void vEEPROMwrite(void *params)
 {
-    (void)params;
-
-    uint8_t ret_code;
-    uint8_t msg[4];
-    uint32_t setpoint_PPM;
-
-    while (1)
-    {
-
-        // Get the setpoint, suspend afterwards
-        xQueueReceive(sendNewSetpointToEepromQueue, &setpoint_PPM, portMAX_DELAY);
-
-        // Gets rid of a write on boot
-        if (setpoint_PPM > 0)
-        {
-
-            // Disable FreeRTOS scheduler
-            vTaskSuspendAll();
-
-            // uint32_t setpoint_PPM --> uint8_t array
-            msg[0] = (setpoint_PPM & 0x000000ff);
-            msg[1] = (setpoint_PPM & 0x0000ff00) >> 8;
-            msg[2] = (setpoint_PPM & 0x00ff0000) >> 16;
-            msg[3] = (setpoint_PPM & 0xff000000) >> 24;
-
-            ret_code = Chip_EEPROM_Write(EEPROM_ADDR, msg, NUM_BYTES);
-
-            if (ret_code == IAP_CMD_SUCCESS)
-            {
-                // EEPROM Write passed
-            }
-            else
-            {
-                // EEPROM Write failed
-            }
-
-            // Resume FreeRTOS scheduler
-            xTaskResumeAll();
-
-            // New setpoint setting available
-            //atom_setpoint = setpoint_PPM;
-            //xSemaphoreGive(new_setpoint_available);
-        }
-    }
+	(void) params;
+	
+	uint8_t ret_code;
+	uint8_t msg[4];
+	uint32_t setpoint_PPM;
+	
+	while(1){
+		// Get the setpoint, suspend afterwards
+		xQueueReceive(sendNewSetpointToEepromQueue, &setpoint_PPM, portMAX_DELAY);
+		
+		// Gets rid of a write on boot
+		if (setpoint_PPM > 0) {
+			// Disable FreeRTOS scheduler
+			vTaskSuspendAll();
+			
+			// uint32_t setpoint_PPM --> uint8_t array
+			msg[0] = (setpoint_PPM & 0x000000ff);
+			msg[1] = (setpoint_PPM & 0x0000ff00) >> 8;
+			msg[2] = (setpoint_PPM & 0x00ff0000) >> 16;
+			msg[3] = (setpoint_PPM & 0xff000000) >> 24;
+			
+			ret_code = Chip_EEPROM_Write(EEPROM_ADDR, msg, NUM_BYTES);
+			
+			if(ret_code == IAP_CMD_SUCCESS) {
+				// EEPROM Write passed
+			} else {
+				// EEPROM Write failed
+			}
+			
+			// Resume FreeRTOS scheduler
+			xTaskResumeAll();
+			
+			// New setpoint setting available
+			atom_setpoint = setpoint_PPM;
+			xSemaphoreGive(new_setpoint_available);
+		}
+	}
 }
 
 void vEEPROMread(void *params)
 {
-    (void)params;
-
-    uint8_t ret_code;
-    uint8_t msg[4];
-    uint32_t setpoint_PPM;
-
-    while (1)
-    {
-
-        // Disable FreeRTOS scheduler
-        vTaskSuspendAll();
-
-        ret_code = Chip_EEPROM_Read(EEPROM_ADDR, msg, NUM_BYTES);
-
-        if (ret_code == IAP_CMD_SUCCESS)
-        {
-            // EEPROM read passed
-        }
-        else
-        {
-            // EEPROM read failed
-        }
-
-        // Get value into setpoint_PPM
-        setpoint_PPM = (msg[0] & 0x000000ff) | (msg[1] & 0x0000ffff) << 8 |
-                       (msg[2] & 0x00ffffff) << 16 | (msg[3] & 0xffffffff) << 24;
-
-        // Resume FreeRTOS scheduler
-        xTaskResumeAll();
-
-        // Send setpoint
-        xQueueSend(sendReadSetpointQueue, &setpoint_PPM, portMAX_DELAY);
-
-        // New setpoint setting available
-        //atom_setpoint = setpoint_PPM;
-        //xSemaphoreGive(new_setpoint_available);
-
-        // Suspend task
-        vTaskSuspend(taskHandleForEepromRead);
+	(void) params;
+	
+	uint8_t ret_code;
+	uint8_t msg[4];
+	uint32_t setpoint_PPM;
+	
+	while(1){
+		// Disable FreeRTOS scheduler
+		vTaskSuspendAll();
+		
+		ret_code = Chip_EEPROM_Read(EEPROM_ADDR, msg, NUM_BYTES);
+		
+		if(ret_code == IAP_CMD_SUCCESS) {
+			// EEPROM read passed
+		} else {
+			// EEPROM read failed
+		}
+		
+		// Get value into setpoint_PPM
+		setpoint_PPM = (msg[0] & 0x000000ff) | (msg[1] & 0x0000ffff) << 8 |
+		        (msg[2] & 0x00ffffff) << 16 | (msg[3] & 0xffffffff) << 24;
+		
+		// Resume FreeRTOS scheduler
+		xTaskResumeAll();
+		
+		// Send setpoint
+		xQueueSend(sendReadSetpointQueue, &setpoint_PPM, portMAX_DELAY);
+		
+		// New setpoint setting available
+		atom_setpoint = setpoint_PPM;
+		xSemaphoreGive(new_setpoint_available);
+		
+		// Suspend task
+		vTaskSuspend(taskHandleForEepromRead);
     }
 }
 
@@ -231,6 +229,10 @@ int main(void)
     sendReadSetpointQueue = xQueueCreate(1, sizeof(uint32_t));
     sendNewSetpointToEepromQueue = xQueueCreate(5, sizeof(uint32_t));
 
+	new_setpoint_available = xSemaphoreCreateBinary();
+
+	valveOpen = false;
+
     /* Enable SysTick Timer */
     SysTick_Config(SystemCoreClock / 10);
 
@@ -246,30 +248,6 @@ int main(void)
     // Reset the PININT block
     Chip_SYSCTL_PeriphReset(RESET_PININT);
 
-    // Interrupt channel for ClockWise interrupts
-    Chip_INMUX_PinIntSel(0, 0, 5);
-    Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
-    Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(0));
-    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(0));
-    NVIC_ClearPendingIRQ(PIN_INT0_IRQn);
-    NVIC_EnableIRQ(PIN_INT0_IRQn);
-
-    // Interrupt channel for CounterClockWise interrupts
-    Chip_INMUX_PinIntSel(1, 0, 6);
-    Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
-    Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(1));
-    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(1));
-    NVIC_ClearPendingIRQ(PIN_INT1_IRQn);
-    NVIC_EnableIRQ(PIN_INT1_IRQn);
-
-    // Interrupt channel for ButtonPress interrupts
-    Chip_INMUX_PinIntSel(2, 1, 8);
-    Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
-    Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(2));
-    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
-    NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
-    NVIC_EnableIRQ(PIN_INT2_IRQn);
-
     // initialize RIT (= enable clocking etc.)
     Chip_RIT_Init(LPC_RITIMER);
 
@@ -278,34 +256,69 @@ int main(void)
     // Note that in a Cortex-M3 a higher number indicates lower interrupt priority
     NVIC_SetPriority(RITIMER_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1);
 
-    // Create the timer
-    TimerHandle_t timer = xTimerCreate("Timer", 3000, pdTRUE, NULL, modbusTimer);
+	// Configure Interrupts
+	// Interrupt channel for ClockWise interrupts
+	Chip_INMUX_PinIntSel(0, 0, 5);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(0));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(0));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(0));
+	NVIC_ClearPendingIRQ(PIN_INT0_IRQn);
+	NVIC_EnableIRQ(PIN_INT0_IRQn);
 
-    // Start the timer
-    xTimerStart(timer, 0);
+	// Interrupt channel for CounterClockWise interrupts
+	Chip_INMUX_PinIntSel(1, 0, 6);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(1));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(1));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(1));
+	NVIC_ClearPendingIRQ(PIN_INT1_IRQn);
+	NVIC_EnableIRQ(PIN_INT1_IRQn);
 
-    xTaskCreate(vEEPROMwrite, "EEPROMwriteTask",
-                configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 2UL),
-                (TaskHandle_t *)NULL);
+	// Interrupt channel for ButtonPress interrupts
+	Chip_INMUX_PinIntSel(2, 1, 8);
+	Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
+	Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(2));
+	Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
+	NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
+	NVIC_EnableIRQ(PIN_INT2_IRQn);
 
-    xTaskCreate(vEEPROMread, "EEPROMreadTask",
-                configMINIMAL_STACK_SIZE * 4, NULL, (tskIDLE_PRIORITY + 4UL),
-                (TaskHandle_t *)&taskHandleForEepromRead);
+	xTaskCreate(vEEPROMwrite, "EEPROMwriteTask",
+			configMINIMAL_STACK_SIZE * 4,
+			NULL,
+			(tskIDLE_PRIORITY + 3UL),
+			(TaskHandle_t *) NULL);
 
-    xTaskCreate(menu_operate_task, "Menu operate task",
-                configMINIMAL_STACK_SIZE * 4,
-                (void *)nullptr,
-                (tskIDLE_PRIORITY + 3UL),
-                (TaskHandle_t *)nullptr);
+	xTaskCreate(vEEPROMread, "EEPROMreadTask",
+			configMINIMAL_STACK_SIZE * 4,
+			NULL,
+			(tskIDLE_PRIORITY + 4UL),
+			(TaskHandle_t *) &taskHandleForEepromRead);
 
-    xTaskCreate(lcd_display_task, "LCD print task",
-                configMINIMAL_STACK_SIZE * 4,
-                (void *)nullptr,
-                (tskIDLE_PRIORITY + 1UL),
-                (TaskHandle_t *)nullptr);
+	xTaskCreate(menu_operate_task, "Menu operate task",
+			configMINIMAL_STACK_SIZE * 4,
+			(void *)nullptr,
+			(tskIDLE_PRIORITY + 4UL),
+			(TaskHandle_t *)nullptr);
 
-    /* Start the scheduler */
-    vTaskStartScheduler();
+	xTaskCreate(lcd_display_task, "LCD print task",
+			configMINIMAL_STACK_SIZE * 4,
+			(void *)nullptr,
+			(tskIDLE_PRIORITY + 1UL),
+			(TaskHandle_t *)nullptr);
 
-    return 1;
+	xTaskCreate(solenoid, "Solenoid control task",
+			configMINIMAL_STACK_SIZE * 4,
+			(void *)nullptr,
+			(tskIDLE_PRIORITY + 1UL),
+			(TaskHandle_t *)nullptr);
+
+	// Create the timer
+	TimerHandle_t timer = xTimerCreate("Timer", 3000, pdTRUE, NULL, modbusTimer);
+
+	// Start the timer
+	xTimerStart(timer, 0);
+
+	/* Start the scheduler */
+	vTaskStartScheduler();
+
+	return 1;
 }
