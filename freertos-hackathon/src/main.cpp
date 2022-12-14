@@ -266,7 +266,7 @@ int main(void)
     Chip_INMUX_PinIntSel(2, 1, 8);
     Chip_PININT_ClearIntStatus(LPC_GPIO_PIN_INT, PININTCH(2));
     Chip_PININT_SetPinModeEdge(LPC_GPIO_PIN_INT, PININTCH(2));
-    Chip_PININT_EnableIntHigh(LPC_GPIO_PIN_INT, PININTCH(2));
+    Chip_PININT_EnableIntLow(LPC_GPIO_PIN_INT, PININTCH(2));
     NVIC_ClearPendingIRQ(PIN_INT2_IRQn);
     NVIC_EnableIRQ(PIN_INT2_IRQn);
 
