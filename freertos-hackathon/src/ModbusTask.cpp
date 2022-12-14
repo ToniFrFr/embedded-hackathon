@@ -65,5 +65,5 @@ void SensorState::task() {
 	}
 }
 
-static SensorState sensors(240, 241, 0x0100, 0x0101, 0x0100, 9600);
+SensorState sensors(240, 241, 0x0100, 0x0101, 0x0100, 9600);
 
