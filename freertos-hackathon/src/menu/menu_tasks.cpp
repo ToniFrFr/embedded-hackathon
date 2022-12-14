@@ -44,8 +44,13 @@ void menu_operate_task(void *params)
     BaseType_t modbusSemaphoreStatus;
     BaseType_t menuCommandQueueStatus;
 
-    EditTypeSentStruct editTypeSentStruct;
+    MenuValuesStruct menuValuesStruct;
     PropertyEdit *selectedEdit;
+
+    uint32_t setpoint = 0;
+    bool editing = false;
+
+    bool start = true;
 
     while (true)
     {
@@ -55,62 +60,66 @@ void menu_operate_task(void *params)
         //     // Read data from class
         //     measuredDataStruct.co2 = 0 measuredDataStruct.temperature = 0 measuredDataStruct.humidity = 0 xQueueSend(newDataAvailableQueue, &MeasuredDataStruct, portMAX_DELAY);
         // }
+        if (start == true)
+        {
+            start = false;
+            menuValuesStruct.editing = 1;
+            menuValuesStruct.co2 = 0;
+            menuValuesStruct.setpoint = setpoint;
+            menuValuesStruct.temperature = 0;
+            menuValuesStruct.humidity = 0;
+            xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+        }
 
         menuCommandQueueStatus = xQueueReceive(menu_command_queue, &receivedCommand, 0);
 
-        if ((receivedCommand.ticks - lastTickCount) > pdMS_TO_TICKS(100))
+        if ((receivedCommand.ticks - lastTickCount) > pdMS_TO_TICKS(40))
         {
             lastTickCount = xTaskGetTickCount();
 
-            if (menuCommandQueueStatus == pdPASS)
+            if (receivedCommand.command == MENU::OK)
             {
-                switch (receivedCommand.command)
+                if (editing == true)
                 {
-                case MENU::UP:
-                    menu.event(MenuItem::up);
-                    break;
-                case MENU::DOWN:
-                    menu.event(MenuItem::down);
-                    break;
-                case MENU::OK:
-                    menu.event(MenuItem::ok);
-                    break;
-                default:
-                    break;
+                    menuValuesStruct.editing = 1;
+                    menuValuesStruct.co2 = 0;
+                    menuValuesStruct.setpoint = setpoint;
+                    menuValuesStruct.temperature = 0;
+                    menuValuesStruct.humidity = 0;
+                    xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
                 }
 
-                selectedEdit = menu.getSelectedPropertyEdit();
+                editing = !editing;
+            }
 
-                if (selectedEdit == co2_setpoint)
+            if (receivedCommand.command == MENU::UP && editing == true)
+            {
+                if (setpoint != 2000)
                 {
-                    if (selectedEdit->getFocus())
-                    {
-                        editTypeSentStruct.editType = EDIT_TYPE::SETPOINT_EDIT;
-                        editTypeSentStruct.value = selectedEdit->getEditedValue();
-                    }
-                    else
-                    {
-                        editTypeSentStruct.editType = EDIT_TYPE::SETPOINT_FIXED;
-                        editTypeSentStruct.value = selectedEdit->getValue();
-                    }
-                }
-                else if (selectedEdit == co2_measured)
-                {
-                    editTypeSentStruct.editType = EDIT_TYPE::CO2;
-                    editTypeSentStruct.value = selectedEdit->getValue();
-                }
-                else if (selectedEdit == temperature)
-                {
-                    editTypeSentStruct.editType = EDIT_TYPE::TEMPERATURE;
-                    editTypeSentStruct.value = selectedEdit->getValue();
-                }
-                else if (selectedEdit == humidity)
-                {
-                    editTypeSentStruct.editType = EDIT_TYPE::HUMIDITY;
-                    editTypeSentStruct.value = selectedEdit->getValue();
+                    setpoint += 5;
                 }
 
-                xQueueSend(strings_to_print_queue, &editTypeSentStruct, portMAX_DELAY);
+                menuValuesStruct.editing = 0;
+                menuValuesStruct.co2 = 0;
+                menuValuesStruct.setpoint = setpoint;
+                menuValuesStruct.temperature = 0;
+                menuValuesStruct.humidity = 0;
+                xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
+            }
+
+            if (receivedCommand.command == MENU::DOWN && editing == true)
+            {
+                if (setpoint != 0)
+                {
+                    setpoint -= 5;
+                }
+
+                menuValuesStruct.editing = 0;
+                menuValuesStruct.co2 = 0;
+                menuValuesStruct.setpoint = setpoint;
+                menuValuesStruct.temperature = 0;
+                menuValuesStruct.humidity = 0;
+                xQueueSend(strings_to_print_queue, &menuValuesStruct, portMAX_DELAY);
             }
         }
     }

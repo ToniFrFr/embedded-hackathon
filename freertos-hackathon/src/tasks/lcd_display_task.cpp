@@ -12,71 +12,36 @@ void lcd_display_task(void *params)
     DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
     LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
 
-    EditTypeSentStruct received_struct;
+    MenuValuesStruct received_struct;
 
-    char string[17];
+    char string_1[17];
+    char string_2[17];
+
+    BaseType_t stringsToPrintStatus;
 
     while (true)
     {
-        xQueueReceive(strings_to_print_queue, &received_struct, portMAX_DELAY);
+        stringsToPrintStatus = xQueueReceive(strings_to_print_queue, &received_struct, portMAX_DELAY);
 
-        lcd->clear();
-
-        switch (received_struct.editType)
+        if (received_struct.editing == 0)
         {
-        case EDIT_TYPE::SETPOINT_EDIT:
-            snprintf(string, 17, "    [%6d]    ", received_struct.value);
+            snprintf(string_1, 17, "    Edit SP:%4d", received_struct.setpoint);
+            snprintf(string_2, 17, "T:%3dC    H:%3d%", received_struct.temperature, received_struct.humidity);
+            lcd->clear();
             lcd->setCursor(0, 0);
-            lcd->print("Setpoint");
+            lcd->print(string_1);
             lcd->setCursor(0, 1);
-            lcd->print(string);
-            break;
-        case EDIT_TYPE::SETPOINT_FIXED:
-            snprintf(string, 17, "     %6d     ", received_struct.value);
-            lcd->setCursor(0, 0);
-            lcd->print("Setpoint");
-            lcd->setCursor(0, 1);
-            lcd->print(string);
-            break;
-        case EDIT_TYPE::CO2:
-            snprintf(string, 17, "     %6d     ", received_struct.value);
-            lcd->setCursor(0, 0);
-            lcd->print("CO2");
-            lcd->setCursor(0, 1);
-            lcd->print(string);
-            break;
-        case EDIT_TYPE::TEMPERATURE:
-            snprintf(string, 17, "     %6d     ", received_struct.value);
-            lcd->setCursor(0, 0);
-            lcd->print("Temperature");
-            lcd->setCursor(0, 1);
-            lcd->print(string);
-            break;
-        case EDIT_TYPE::HUMIDITY:
-            snprintf(string, 17, "     %6d     ", received_struct.value);
-            lcd->setCursor(0, 0);
-            lcd->print("Humidity");
-            lcd->setCursor(0, 1);
-            lcd->print(string);
-            break;
-        default:
-            break;
+            lcd->print(string_2);
         }
-
-/*         if (received_struct.line_1[0] != '\0' || received_struct.line_2[0] != '\0')
+        else
         {
-        }
-
-        if (received_struct.line_1[0] != '\0')
-        {
+            snprintf(string_1, 17, "CO2:%4d SP:%4d", received_struct.co2, received_struct.setpoint);
+            snprintf(string_2, 17, "T:%3dC    H:%3d%", received_struct.temperature, received_struct.humidity);
+            lcd->clear();
             lcd->setCursor(0, 0);
-            lcd->print(received_struct.line_1);
-        }
-
-        if (received_struct.line_2[0] != '\0')
-        {
+            lcd->print(string_1);
             lcd->setCursor(0, 1);
-            lcd->print(received_struct.line_2);
-        } */
+            lcd->print(string_2);
+        }
     }
 }

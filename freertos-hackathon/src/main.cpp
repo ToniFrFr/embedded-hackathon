@@ -117,7 +117,7 @@ int main(void)
     NVIC_SetPriority(RITIMER_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1);
 
     menu_command_queue = xQueueCreate(1, sizeof(MenuCommandWithTicksStruct));
-    strings_to_print_queue = xQueueCreate(1, sizeof(EditTypeSentStruct));
+    strings_to_print_queue = xQueueCreate(10, sizeof(MenuValuesStruct));
     newSetpointQueue = xQueueCreate(5, sizeof(uint32_t));
 
     // Initialize PININT driver

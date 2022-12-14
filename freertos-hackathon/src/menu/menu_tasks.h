@@ -8,19 +8,13 @@ enum MENU
     OK
 };
 
-enum EDIT_TYPE
+struct MenuValuesStruct
 {
-    SETPOINT_FIXED,
-    SETPOINT_EDIT,
-    CO2,
-    TEMPERATURE,
-    HUMIDITY
-};
-
-struct EditTypeSentStruct
-{
-    uint8_t editType;
-    uint32_t value;
+    uint8_t editing;
+    uint32_t co2;
+    uint32_t setpoint;
+    uint32_t temperature;
+    uint32_t humidity;
 };
 
 struct MenuCommandWithTicksStruct
