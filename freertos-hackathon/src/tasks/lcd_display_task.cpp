@@ -12,6 +12,8 @@ void lcd_display_task(void *params)
     DigitalIoPin *d7 = new DigitalIoPin(0, 0, DigitalIoPin::output);
     LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
 
+    lcd->clear();
+
     MenuValuesStruct received_struct;
 
     char string_1[17];

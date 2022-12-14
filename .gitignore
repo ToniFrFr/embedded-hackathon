@@ -42,3 +42,8 @@ Debug/
 Release/
 
 *.launch
+
+# Line endings get swapped in these
+*/.cproject
+*/.settings/language.settings.xml
+
