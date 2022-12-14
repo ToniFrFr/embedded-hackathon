@@ -38,12 +38,6 @@
 
 #include "solenoid.h"
 
-/**
- * TODO: delete?
- * The following is required if runtime statistics are to be collected
- * Copy the code to the source file where other you initialize hardware
- */
-extern bool openValve;
 extern "C"
 {
     void vConfigureTimerForRunTimeStats(void)
@@ -225,7 +219,7 @@ void vConnectionTask(void *pvParams) {
 			methodSuccess = mqttInterface.ConnectToMQTTBroker(&xBuffer,&xMQTTContext, &xNetworkContext);
 			if(methodSuccess) {
 				printf("Broker connect success \n");
-				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), openValve, atom_setpoint);
+				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), valveOpen, atom_setpoint);
 				methodSuccess = mqttInterface.Publish(appconfigMQTT_TOPIC, publishPayload, &xMQTTContext);
 				if(methodSuccess) {
 					printf("Publish success \n");
@@ -387,14 +381,18 @@ int main(void)
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *)nullptr);
+	xTaskCreate(vConnectionTask, "vConnTask", 
+			1024, 
+			NULL, 
+			(tskIDLE_PRIORITY + 3UL),
+			(TaskHandle_t *) NULL);
 
-	TimerHandle_t timer = xTimerCreate("Timer", 3000, pdTRUE, NULL, modbusTimer);
+	TimerHandle_t timer = xTimerCreate("Timer", 250, pdTRUE, NULL, modbusTimer);
 
 	// Start the timer
 	xTimerStart(timer, 0);
 
-	xTaskCreate(vConnectionTask, "vConnTask", 1024, NULL, (tskIDLE_PRIORITY + 3UL),
-			(TaskHandle_t *) NULL);
+	
 	/* Start the scheduler */
 	vTaskStartScheduler();
 
