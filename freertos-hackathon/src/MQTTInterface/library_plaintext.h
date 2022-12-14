@@ -71,7 +71,7 @@ extern void vLoggingPrintf( const char * pcFormatString,
 //#include "FreeRTOS_Sockets.h"
 
 /* Transport interface include. */
-#include "transport_interface.h"
+#include "../coreMQTT/source/interface/transport_interface.h"
 
 /**
  * @brief Parameters for the network context that uses FreeRTOS+TCP sockets.
@@ -106,6 +106,8 @@ typedef enum PlaintextTransportStatus
  */
 PlaintextTransportStatus_t Plaintext_FreeRTOS_Connect( NetworkContext_t * pNetworkContext,
                                                        const char * pHostName,
+													   const char * pSSID,
+													   const char * pPASSWORD,
                                                        uint16_t port,
                                                        uint32_t receiveTimeoutMs,
                                                        uint32_t sendTimeoutMs );

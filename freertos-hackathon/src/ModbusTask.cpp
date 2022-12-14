@@ -36,12 +36,12 @@ int SensorState::getCo2() {
 
 int SensorState::getTemperature() {
 	std::lock_guard<Fmutex> lock(this->mutex);
-	return this->temperature;
+	return this->temperature / 10;
 }
 
 int SensorState::getHumidity() {
 	std::lock_guard<Fmutex> lock(this->mutex);
-	return this->humidity;
+	return this->humidity / 10;
 }
 
 void SensorState::readRegisters() {

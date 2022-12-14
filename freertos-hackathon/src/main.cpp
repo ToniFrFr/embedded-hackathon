@@ -29,6 +29,7 @@
 #include "ModbusRegister.h"
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "MQTTInterface/MQTTInterface.h"
 #include "ModbusTask.h"
 #include "RotaryEncoder.h"
 
@@ -37,11 +38,6 @@
 
 #include "solenoid.h"
 
-/**
- * TODO: delete?
- * The following is required if runtime statistics are to be collected
- * Copy the code to the source file where other you initialize hardware
- */
 extern "C"
 {
     void vConfigureTimerForRunTimeStats(void)
@@ -52,6 +48,36 @@ extern "C"
     }
 }
 /* end runtime statictics collection */
+/*-----MQTT GLOBAL FUNCTIONS AND DEFINITIONS-----*/
+static uint8_t ucSharedBuffer[ mqttSHARED_BUFFER_SIZE ];
+
+static MQTTFixedBuffer_t xBuffer =
+{
+    .pBuffer = ucSharedBuffer,
+    .size    = mqttSHARED_BUFFER_SIZE
+};
+
+uint32_t ulGlobalEntryTimeMs;
+uint32_t prvGetTimeMs( void )
+{
+    TickType_t xTickCount = 0;
+    uint32_t ulTimeMs = 0UL;
+
+    /* Get the current tick count. */
+    xTickCount = xTaskGetTickCount();
+
+    /* Convert the ticks to milliseconds. */
+    ulTimeMs = ( uint32_t ) xTickCount * MILLISECONDS_PER_TICK;
+
+    /* Reduce ulGlobalEntryTimeMs from obtained time so as to always return the
+     * elapsed time in the application. */
+    ulTimeMs = ( uint32_t ) ( ulTimeMs - ulGlobalEntryTimeMs );
+
+    return ulTimeMs;
+}
+
+/*-----MQTT GLOBAL FUNCTIONS-----*/
+
 
 // Global queues
 QueueHandle_t menu_command_queue;
@@ -171,6 +197,51 @@ void vEEPROMwrite(void *params)
 			xSemaphoreGive(new_setpoint_available);
 		}
 	}
+}
+void vConnectionTask(void *pvParams) {
+    NetworkContext_t xNetworkContext = { 0 };
+    PlaintextTransportParams_t xPlaintextTransportParams = { 0 };
+    MQTTContext_t xMQTTContext;
+    bool methodSuccess;
+    std::string publishPayload;
+
+    xNetworkContext.pParams = &xPlaintextTransportParams;
+
+	MQTTInterface mqttInterface(WIFI_SSID, WIFI_PASS, appconfigMQTT_BROKER_ENDPOINT, appconfigMQTT_BROKER_PORT);
+
+	ulGlobalEntryTimeMs = prvGetTimeMs();
+
+	for(;;) {
+		methodSuccess = mqttInterface.ConnectToMQTTServer(&xNetworkContext);
+
+		if(methodSuccess) {
+			printf("Server connnect success \n");
+			methodSuccess = mqttInterface.ConnectToMQTTBroker(&xBuffer,&xMQTTContext, &xNetworkContext);
+			if(methodSuccess) {
+				printf("Broker connect success \n");
+				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), valveOpen, atom_setpoint);
+				methodSuccess = mqttInterface.Publish(appconfigMQTT_TOPIC, publishPayload, &xMQTTContext);
+				if(methodSuccess) {
+					printf("Publish success \n");
+				} else {
+					printf("Publish failed \n");
+				}
+			} else {
+				printf("Broker connect failed \n");
+			}
+		} else {
+			printf("Server connect failed \n");
+		}
+
+
+		methodSuccess = mqttInterface.DisconnectFromMQTTServer(&xMQTTContext, &xNetworkContext);
+
+		printf("Disconnect success: %d \n", methodSuccess);
+
+		vTaskDelay(pdMS_TO_TICKS(appconfigMQTT_SEND_INTERVAL));
+
+	}
+
 }
 
 void vEEPROMread(void *params)
@@ -303,20 +374,25 @@ int main(void)
 			configMINIMAL_STACK_SIZE * 4,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
-			(TaskHandle_t *)nullptr);
+			(TaskHandle_t *)nullptr);		
 
 	xTaskCreate(solenoid, "Solenoid control task",
 			configMINIMAL_STACK_SIZE * 4,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *)nullptr);
+	xTaskCreate(vConnectionTask, "vConnTask", 
+			1024, 
+			NULL, 
+			(tskIDLE_PRIORITY + 3UL),
+			(TaskHandle_t *) NULL);
 
-	// Create the timer
-	TimerHandle_t timer = xTimerCreate("Timer", 3000, pdTRUE, NULL, modbusTimer);
+	TimerHandle_t timer = xTimerCreate("Timer", 250, pdTRUE, NULL, modbusTimer);
 
 	// Start the timer
 	xTimerStart(timer, 0);
 
+	
 	/* Start the scheduler */
 	vTaskStartScheduler();
 
