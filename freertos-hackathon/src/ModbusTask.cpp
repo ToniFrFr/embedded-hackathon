@@ -13,6 +13,8 @@
 #include <climits>
 #include <mutex>
 /// \endcond
+#include "FreeRTOS.h"
+#include "timers.h"
 #include "modbus/ModbusMaster.h"
 #include "ModbusInterface.h"
 #include "Fmutex.h"
@@ -23,7 +25,7 @@ SensorState::SensorState(uint8_t co2DevAddr, uint8_t tempHumidDevAddr,
 		uint16_t co2RegAddr, uint16_t tempRegAddr, uint16_t humidRegAddr,
 		uint16_t baudRate)
 	: co2Interface(co2DevAddr, baudRate), tempHumidInterface(tempHumidDevAddr, baudRate),
-	co2Register(co2RegAddr), tempRegister(tempRegAddr), humidityRegister(humidRegAddr) {}
+	co2Register(co2RegAddr), tempRegister(tempRegAddr), humidityRegister(humidRegAddr), data_ready(xSemaphoreCreateBinary()) {}
 
 SensorState::~SensorState() {}
 
@@ -56,14 +58,12 @@ void SensorState::readRegisters() {
 	if(t_humidity != INT_MIN) {
 		this->humidity = t_humidity;
 	}
+	xSemaphoreGive(this->data_ready);
 }
 
-void SensorState::task() {
-	while(1) {
-		vTaskDelay(pdMS_TO_TICKS(5000));
-		this->readRegisters();
-	}
-}
+SensorState modbus(240, 241, 0x0100, 0x0101, 0x0100, 9600);
 
-SensorState sensors(240, 241, 0x0100, 0x0101, 0x0100, 9600);
+void modbusTimer(TimerHandle_t handle) {
+	modbus.readRegisters();
+}
 

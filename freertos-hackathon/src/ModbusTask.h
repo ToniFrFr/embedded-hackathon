@@ -15,6 +15,8 @@
 /// \cond
 #include <climits>
 /// \endcond
+#include "FreeRTOS.h"
+#include "timers.h"
 #include "Fmutex.h"
 #include "ModbusInterface.h"
 
@@ -61,10 +63,12 @@ public:
 	int getHumidity();
 
     /**
-     * @brief Run the task loop
+     * @brief Read the registers into the object
      *
      */
-	void task();
+	void readRegisters();
+
+	SemaphoreHandle_t data_ready;
 private:
 	Fmutex mutex;
 	ModbusInterface co2Interface;
@@ -75,12 +79,10 @@ private:
 	int co2 = 0;
 	int temperature = 0;
 	int humidity = 0;
-
-    /**
-     * @brief Read the registers into the object
-     *
-     */
-	void readRegisters();
 };
+
+extern SensorState modbus;
+
+void modbusTimer(TimerHandle_t handle);
 
 #endif // MODBUS_TASK_H_

@@ -21,6 +21,7 @@
 // TODO: insert other include files here
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 #include "semphr.h"
 #include "heap_lock_monitor.h"
 #include "retarget_uart.h"
@@ -28,6 +29,7 @@
 #include "ModbusRegister.h"
 #include "DigitalIoPin.h"
 #include "LiquidCrystal.h"
+#include "ModbusTask.h"
 
 // TODO: insert other definitions and declarations here
 
