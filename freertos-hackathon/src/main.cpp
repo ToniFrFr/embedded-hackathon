@@ -215,28 +215,16 @@ void vConnectionTask(void *pvParams) {
 		methodSuccess = mqttInterface.ConnectToMQTTServer(&xNetworkContext);
 
 		if(methodSuccess) {
-			printf("Server connnect success \n");
 			methodSuccess = mqttInterface.ConnectToMQTTBroker(&xBuffer,&xMQTTContext, &xNetworkContext);
 			if(methodSuccess) {
-				printf("Broker connect success \n");
 				publishPayload = mqttInterface.GeneratePublishPayload(modbus.getCo2(), modbus.getHumidity(), modbus.getTemperature(), valveOpen, atom_setpoint);
 				methodSuccess = mqttInterface.Publish(appconfigMQTT_TOPIC, publishPayload, &xMQTTContext);
-				if(methodSuccess) {
-					printf("Publish success \n");
-				} else {
-					printf("Publish failed \n");
-				}
-			} else {
-				printf("Broker connect failed \n");
 			}
-		} else {
-			printf("Server connect failed \n");
 		}
 
 
 		methodSuccess = mqttInterface.DisconnectFromMQTTServer(&xMQTTContext, &xNetworkContext);
 
-		printf("Disconnect success: %d \n", methodSuccess);
 
 		vTaskDelay(pdMS_TO_TICKS(appconfigMQTT_SEND_INTERVAL));
 
@@ -285,15 +273,13 @@ void vEEPROMread(void *params)
 
 int main(void)
 {
+	/* Generic Initialization */
+
+
+    heap_monitor_setup();
     SystemCoreClockUpdate();
     Board_Init();
     Board_LED_Set(0, true);
-
-    heap_monitor_setup();
-
-    /* Generic Initialization */
-    SystemCoreClockUpdate();
-    Board_Init();
 
     menu_command_queue = xQueueCreate(1, sizeof(MenuCommandWithTicksStruct));
     strings_to_print_queue = xQueueCreate(10, sizeof(MenuValuesStruct));
@@ -353,37 +339,37 @@ int main(void)
 	NVIC_EnableIRQ(PIN_INT2_IRQn);
 
 	xTaskCreate(vEEPROMwrite, "EEPROMwriteTask",
-			configMINIMAL_STACK_SIZE * 4,
+			configMINIMAL_STACK_SIZE,
 			NULL,
 			(tskIDLE_PRIORITY + 3UL),
 			(TaskHandle_t *) NULL);
 
 	xTaskCreate(vEEPROMread, "EEPROMreadTask",
-			configMINIMAL_STACK_SIZE * 4,
+			configMINIMAL_STACK_SIZE,
 			NULL,
 			(tskIDLE_PRIORITY + 4UL),
 			(TaskHandle_t *) &taskHandleForEepromRead);
 
 	xTaskCreate(menu_operate_task, "Menu operate task",
-			configMINIMAL_STACK_SIZE * 4,
+			configMINIMAL_STACK_SIZE,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 4UL),
 			(TaskHandle_t *)nullptr);
 
 	xTaskCreate(lcd_display_task, "LCD print task",
-			configMINIMAL_STACK_SIZE * 4,
+			configMINIMAL_STACK_SIZE * 3,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *)nullptr);		
 
 	xTaskCreate(solenoid, "Solenoid control task",
-			configMINIMAL_STACK_SIZE * 4,
+			configMINIMAL_STACK_SIZE,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *)nullptr);
 	xTaskCreate(vConnectionTask, "vConnTask", 
-			1024, 
-			NULL, 
+			512,
+			NULL,
 			(tskIDLE_PRIORITY + 3UL),
 			(TaskHandle_t *) NULL);
 

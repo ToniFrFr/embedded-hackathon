@@ -64,7 +64,7 @@ extern void vLoggingPrintf( const char * pcFormatString,
  */
 
 
-#define appconfigTEST_ENV
+//#define appconfigTEST_ENV
 #ifdef appconfigTEST_ENV
 
 #define appconfigCLIENT_IDENTIFIER				"ESP-MQTT-GROUP-08"
