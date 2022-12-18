@@ -908,19 +908,22 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = freertos-hackathon/src/main.cpp
-                         freertos-hackathon/src/ModbusInterface.cpp
-                         freertos-hackathon/src/ModbusInterface.h
-                         freertos-hackathon/src/ModbusTask.cpp
-                         freertos-hackathon/src/ModbusTask.h
-                         freertos-hackathon/src/RotaryEncoder.cpp
-                         freertos-hackathon/src/RotaryEncoder.h
-                         freertos-hackathon/src/solenoid.cpp
-                         freertos-hackathon/src/solenoid.h
-                         freertos-hackathon/src/tasks
-                         freertos-hackathon/src/menu
-                         freertos-hackathon/src/MQTTInterface/MQTTInterface.cpp
-                         freertos-hackathon/src/MQTTInterface/MQTTInterface.h
+INPUT                  = freertos-hackathon/src/main.cpp \
+                         freertos-hackathon/src/ModbusInterface.cpp \
+                         freertos-hackathon/src/ModbusInterface.h \
+                         freertos-hackathon/src/ModbusTask.cpp \
+                         freertos-hackathon/src/ModbusTask.h \
+                         freertos-hackathon/src/RotaryEncoder.cpp \
+                         freertos-hackathon/src/RotaryEncoder.h \
+                         freertos-hackathon/src/solenoid.cpp \
+                         freertos-hackathon/src/solenoid.h \
+                         freertos-hackathon/src/tasks \
+                         freertos-hackathon/src/menu \
+                         freertos-hackathon/src/MQTTInterface/MQTTInterface.cpp \
+                         freertos-hackathon/src/MQTTInterface/MQTTInterface.h \
+                         freertos-hackathon/src/MQTTInterface/app_mqtt_config.h \
+                         freertos-hackathon/src/MQTTInterface/library_plaintext.h \
+                         freertos-hackathon/src/MQTTInterface/library_plaintext.cpp \
                          doxygen/doxygen.md
 
 # This tag can be used to specify the character encoding of the source files
