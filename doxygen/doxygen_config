@@ -42,7 +42,7 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = "Ventilation controller"
+PROJECT_NAME           = "FreeRTOS Hackathon"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -908,7 +908,20 @@ WARN_LOGFILE           =
 # spaces. See also FILE_PATTERNS and EXTENSION_MAPPING
 # Note: If this tag is empty the current directory is searched.
 
-INPUT                  = VentilationController/src/VentilationController.cpp VentilationController/src/libs VentilationController/src/libs/edits doxygen/doxygen.md
+INPUT                  = freertos-hackathon/src/main.cpp
+                         freertos-hackathon/src/ModbusInterface.cpp
+                         freertos-hackathon/src/ModbusInterface.h
+                         freertos-hackathon/src/ModbusTask.cpp
+                         freertos-hackathon/src/ModbusTask.h
+                         freertos-hackathon/src/RotaryEncoder.cpp
+                         freertos-hackathon/src/RotaryEncoder.h
+                         freertos-hackathon/src/solenoid.cpp
+                         freertos-hackathon/src/solenoid.h
+                         freertos-hackathon/src/tasks
+                         freertos-hackathon/src/menu
+                         freertos-hackathon/src/MQTTInterface/MQTTInterface.cpp
+                         freertos-hackathon/src/MQTTInterface/MQTTInterface.h
+                         doxygen/doxygen.md
 
 # This tag can be used to specify the character encoding of the source files
 # that doxygen parses. Internally doxygen uses the UTF-8 encoding. Doxygen uses
