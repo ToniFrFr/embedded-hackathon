@@ -67,42 +67,109 @@ extern void vLoggingPrintf( const char * pcFormatString,
 //#define appconfigTEST_ENV
 #ifdef appconfigTEST_ENV
 
+/**
+ * @brief MQTT client identifier constant value
+ * 
+ */
 #define appconfigCLIENT_IDENTIFIER				"ESP-MQTT-GROUP-08"
 
+/**
+ * @brief MQTT Broker IP address constant
+ * 
+ */
 #define appconfigMQTT_BROKER_ENDPOINT				"192.168.65.42"
 
+/**
+ * @brief WiFi access point SSID for testing purposes
+ * 
+ */
 #define WIFI_SSID	    "OPMIKAEL"
+/**
+ * @brief WiFi access point password for testing purposes
+ * 
+ */
 #define WIFI_PASS       "pellemiljoona"
+
+/**
+ * @brief MQTT Topic value for testing purposes
+ * 
+ */
 
 #define appconfigMQTT_TOPIC "test/values"
 
+/**
+ * @brief The test MQTT Broker's port
+ * 
+ */
 #define appconfigMQTT_BROKER_PORT					1883
 
+/**
+ * @brief The interval time between MQTT topic publishes from the device
+ * 
+ */
 #define appconfigMQTT_SEND_INTERVAL 5000
 
 #else
-//#define appconfigMQTT_BROKER_ENDPOINT				"192.168.1.254"
+
+/**
+ * @brief The demo/main setup MQTT Broker endpoint
+ * 
+ */
 #define appconfigMQTT_BROKER_ENDPOINT "mqtt3.thingspeak.com"
 
+/**
+ * @brief The demo setup WiFi access point SSID
+ * 
+ */
 #define WIFI_SSID	    "SmartIotMQTT"
+/**
+ * @brief The demo setup WiFi access point password
+ * 
+ */
 #define WIFI_PASS       "SmartIot"
 
+/**
+ * @brief The demo setup MQTT Topic
+ * 
+ */
 #define appconfigMQTT_TOPIC "channels/1955513/publish"
 
+/**
+ * @brief The demo setup channel ID
+ * 
+ */
 #define CHANNEL_ID "1955513"
+/**
+ * @brief Demo setup MQTT client username
+ * 
+ */
 #define appconfigSECRET_MQTT_USERNAME "DCAmDzgFFhoKKy8kCBw3NQA"
+/**
+ * @brief Demo setup MQTT client ID
+ * 
+ */
 #define appconfigCLIENT_IDENTIFIER "DCAmDzgFFhoKKy8kCBw3NQA"
+/**
+ * @brief Demo setup MQTT Client password 
+ * 
+ */
 #define appconfigSECRET_MQTT_PASSWORD "qKxqzEzD+xMf2LMg0SU24WYk"
 
+/**
+ * @brief Demo setup MQTT Broker port
+ * 
+ */
+
 #define appconfigMQTT_BROKER_PORT					1883
+
+/**
+ * @brief Demo setup time interval between MQTT publishes 
+ * 
+ */
 
 #define appconfigMQTT_SEND_INTERVAL 300000
 
 #endif
-
-
-
-
 
 
 #endif /* APP_MQTT_CONFIG_H_ */

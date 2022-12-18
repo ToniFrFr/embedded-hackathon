@@ -49,15 +49,31 @@ extern "C"
 }
 /* end runtime statictics collection */
 /*-----MQTT GLOBAL FUNCTIONS AND DEFINITIONS-----*/
+/**
+ * @brief the network shared buffer
+ * 
+ */
 static uint8_t ucSharedBuffer[ mqttSHARED_BUFFER_SIZE ];
 
+/**
+ * @brief The struct to hold the buffer and it's size
+ * 
+ */
 static MQTTFixedBuffer_t xBuffer =
 {
     .pBuffer = ucSharedBuffer,
     .size    = mqttSHARED_BUFFER_SIZE
 };
-
+/**
+ * @brief The time in milliseconds for when connection task is first created, used for network time related functions
+ * 
+ */
 uint32_t ulGlobalEntryTimeMs;
+/**
+ * @brief Function used to get the time in ms for network related functions
+ * 
+ * @return uint32_t time in ms
+ */
 uint32_t prvGetTimeMs( void )
 {
     TickType_t xTickCount = 0;
@@ -198,6 +214,11 @@ void vEEPROMwrite(void *params)
 		}
 	}
 }
+/**
+ * @brief FreeRTOS task used for connecting to the access point, MQTT Broker and then publishing the current sensor data to the given MQTT Broker topic
+ * 
+ * @param pvParams task parameters, not used for this task
+ */
 void vConnectionTask(void *pvParams) {
     NetworkContext_t xNetworkContext = { 0 };
     PlaintextTransportParams_t xPlaintextTransportParams = { 0 };
