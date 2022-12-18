@@ -49,3 +49,5 @@ Release/
 
 #VSCODE
 .vscode/
+
+ZephyrRTOS_TAD_logs

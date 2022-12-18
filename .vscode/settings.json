@@ -59,5 +59,12 @@
         "variant": "cpp",
         "vector": "cpp",
         "algorithm": "cpp"
+    },
+    "files.exclude": {
+        ".mcuxpressoide_packages_support/": true,
+        ".metadata/": true,
+        "AzureRTOS_TAD_logs/": true,
+        "FreeRTOS_TAD_logs/": true,
+        "ZephyrRTOS_TAD_logs/": true
     }
 }
