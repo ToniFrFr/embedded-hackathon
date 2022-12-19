@@ -918,7 +918,8 @@ INPUT                  = freertos-hackathon/src/main.cpp \
                          freertos-hackathon/src/solenoid.cpp \
                          freertos-hackathon/src/solenoid.h \
                          freertos-hackathon/src/tasks \
-                         freertos-hackathon/src/menu \
+                         freertos-hackathon/src/menu/menu_tasks.cpp \
+                         freertos-hackathon/src/menu/menu_tasks.h \
                          freertos-hackathon/src/MQTTInterface/MQTTInterface.cpp \
                          freertos-hackathon/src/MQTTInterface/MQTTInterface.h \
                          freertos-hackathon/src/MQTTInterface/app_mqtt_config.h \
