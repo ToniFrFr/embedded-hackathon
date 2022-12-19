@@ -51,13 +51,13 @@ extern "C"
 /*-----MQTT GLOBAL FUNCTIONS AND DEFINITIONS-----*/
 /**
  * @brief the network shared buffer
- * 
+ *
  */
 static uint8_t ucSharedBuffer[ mqttSHARED_BUFFER_SIZE ];
 
 /**
  * @brief The struct to hold the buffer and it's size
- * 
+ *
  */
 static MQTTFixedBuffer_t xBuffer =
 {
@@ -66,12 +66,12 @@ static MQTTFixedBuffer_t xBuffer =
 };
 /**
  * @brief The time in milliseconds for when connection task is first created, used for network time related functions
- * 
+ *
  */
 uint32_t ulGlobalEntryTimeMs;
 /**
  * @brief Function used to get the time in ms for network related functions
- * 
+ *
  * @return uint32_t time in ms
  */
 uint32_t prvGetTimeMs( void )
@@ -106,10 +106,14 @@ MenuCommandWithTicksStruct menuCommandStruct;
 
 extern std::atomic<bool> valveOpen;
 
-// Interrupt handlers for rotary encoder.
+/* Interrupt handlers for rotary encoder. */
 extern "C"
 {
-    // ClockWise Interrupt
+    /*
+     * @brief Interrupt handler for ClockWise rotation
+     * @param (void) : No parameters
+     * @return Return nothing.
+     */
     void PIN_INT0_IRQHandler(void)
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
@@ -124,7 +128,11 @@ extern "C"
         portEND_SWITCHING_ISR(xHigherPriorityWoken);
     }
 
-    // CounterClockWise Interrupt
+    /*
+     * @brief Interrupt handler for CounterClockWise rotation
+     * @param (void) : No parameters
+     * @return Return nothing.
+     */
     void PIN_INT1_IRQHandler(void)
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
@@ -139,7 +147,11 @@ extern "C"
         portEND_SWITCHING_ISR(xHigherPriorityWoken);
     }
 
-    // Button Press Interrupt
+    /*
+     * @brief Interrupt handler for Button Press
+     * @param (void) : No parameters
+     * @return Return nothing.
+     */
     void PIN_INT2_IRQHandler(void)
     {
         portBASE_TYPE xHigherPriorityWoken = pdFALSE;
@@ -155,7 +167,7 @@ extern "C"
     }
 }
 
-// EEPROM Definitions
+/* EEPROM Definitions */
 
 /* EEPROM address used for storage */
 #define EEPROM_ADDR 0x00000100
@@ -172,51 +184,61 @@ std::atomic<uint32_t> atom_setpoint;
 /* Global semaphore */
 SemaphoreHandle_t new_setpoint_available;
 
+/* Handle used to suspend EEPROMread task */
 TaskHandle_t taskHandleForEepromRead = NULL;
 
+
+/**
+ * @brief FreeRTOS task to write from EEPROM
+ * @param (void) *params : Task gets no parameters.
+ * @return Task returns nothing.
+ */
 void vEEPROMwrite(void *params)
 {
 	(void) params;
-	
-	uint8_t ret_code;
-	uint8_t msg[4];
-	uint32_t setpoint_PPM;
-	
+
+	uint8_t ret_code; 		/* Used to check validity of EEPROM access */
+	uint8_t msg[4];			/* Holds the data to be written to EEPROM */
+	uint32_t setpoint_PPM;	/* Holds the value of the setpoint */
+
 	while(1){
-		// Get the setpoint, suspend afterwards
+		/* Get the setpoint, suspend afterwards */
 		xQueueReceive(sendNewSetpointToEepromQueue, &setpoint_PPM, portMAX_DELAY);
-		
-		// Gets rid of a write on boot
+
+		/* Gets rid of a write on boot */
 		if (setpoint_PPM > 0) {
-			// Disable FreeRTOS scheduler
+
+			/* Disable FreeRTOS scheduler */
 			vTaskSuspendAll();
-			
-			// uint32_t setpoint_PPM --> uint8_t array
+
+			/* uint32_t setpoint_PPM --> uint8_t array */
 			msg[0] = (setpoint_PPM & 0x000000ff);
 			msg[1] = (setpoint_PPM & 0x0000ff00) >> 8;
 			msg[2] = (setpoint_PPM & 0x00ff0000) >> 16;
 			msg[3] = (setpoint_PPM & 0xff000000) >> 24;
-			
+
+			/* Write message to specified address */
 			ret_code = Chip_EEPROM_Write(EEPROM_ADDR, msg, NUM_BYTES);
-			
+
 			if(ret_code == IAP_CMD_SUCCESS) {
 				// EEPROM Write passed
 			} else {
 				// EEPROM Write failed
 			}
-			
-			// Resume FreeRTOS scheduler
+
+			/* Resume FreeRTOS scheduler */
 			xTaskResumeAll();
-			
-			// New setpoint setting available
+
+			/* New setpoint available, inform other interested tasks */
 			atom_setpoint = setpoint_PPM;
 			xSemaphoreGive(new_setpoint_available);
 		}
 	}
 }
+
 /**
  * @brief FreeRTOS task used for connecting to the access point, MQTT Broker and then publishing the current sensor data to the given MQTT Broker topic
- * 
+ *
  * @param pvParams task parameters, not used for this task
  */
 void vConnectionTask(void *pvParams) {
@@ -253,41 +275,49 @@ void vConnectionTask(void *pvParams) {
 
 }
 
+/**
+ * @brief FreeRTOS task to read from EEPROM
+ * @param (void) *params : Task gets no parameters.
+ * @return Task returns nothing.
+ */
 void vEEPROMread(void *params)
 {
 	(void) params;
-	
-	uint8_t ret_code;
-	uint8_t msg[4];
-	uint32_t setpoint_PPM;
-	
+
+	uint8_t ret_code;		/* Used to check validity of EEPROM access */
+	uint8_t msg[4];			/* Holds the data which is read from EEPROM */
+	uint32_t setpoint_PPM;	/* Holds the setpoint which is read from EEPROM */
+
 	while(1){
-		// Disable FreeRTOS scheduler
+		/* Disable FreeRTOS scheduler */
 		vTaskSuspendAll();
-		
+
+		/* Read from EEPROM */
 		ret_code = Chip_EEPROM_Read(EEPROM_ADDR, msg, NUM_BYTES);
-		
+
 		if(ret_code == IAP_CMD_SUCCESS) {
 			// EEPROM read passed
 		} else {
 			// EEPROM read failed
 		}
-		
-		// Get value into setpoint_PPM
-		setpoint_PPM = (msg[0] & 0x000000ff) | (msg[1] & 0x0000ffff) << 8 |
-		        (msg[2] & 0x00ffffff) << 16 | (msg[3] & 0xffffffff) << 24;
-		
-		// Resume FreeRTOS scheduler
+
+		/* Get read value into setpoint_PPM */
+		setpoint_PPM = (msg[0] & 0x000000ff) |
+				(msg[1] & 0x0000ffff) << 8 	|
+		        (msg[2] & 0x00ffffff) << 16 |
+				(msg[3] & 0xffffffff) << 24;
+
+		/* Resume FreeRTOS scheduler */
 		xTaskResumeAll();
-		
-		// Send setpoint
+
+		/* Send setpoint */
 		xQueueSend(sendReadSetpointQueue, &setpoint_PPM, portMAX_DELAY);
-		
-		// New setpoint setting available
+
+		/* New setpoint setting available, inform other interested tasks */
 		atom_setpoint = setpoint_PPM;
 		xSemaphoreGive(new_setpoint_available);
-		
-		// Suspend task
+
+		/* Suspend task */
 		vTaskSuspend(taskHandleForEepromRead);
     }
 }
@@ -381,14 +411,14 @@ int main(void)
 			configMINIMAL_STACK_SIZE * 3,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
-			(TaskHandle_t *)nullptr);		
+			(TaskHandle_t *)nullptr);
 
 	xTaskCreate(solenoid, "Solenoid control task",
 			configMINIMAL_STACK_SIZE,
 			(void *)nullptr,
 			(tskIDLE_PRIORITY + 1UL),
 			(TaskHandle_t *)nullptr);
-	xTaskCreate(vConnectionTask, "vConnTask", 
+	xTaskCreate(vConnectionTask, "vConnTask",
 			512,
 			NULL,
 			(tskIDLE_PRIORITY + 3UL),
@@ -399,7 +429,7 @@ int main(void)
 	// Start the timer
 	xTimerStart(timer, 0);
 
-	
+
 	/* Start the scheduler */
 	vTaskStartScheduler();
 
