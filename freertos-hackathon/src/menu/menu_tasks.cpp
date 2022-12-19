@@ -1,3 +1,14 @@
+/**
+ * @file menu_tasks.cpp
+ * @author Christopher Romano (christopher.romano@metropolia.fi)
+ * @brief Definition of menu state related tasks
+ * @version 0.1
+ * @date 2022-12-13
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 /// \cond
 #include "chip.h"
 #include "FreeRTOS.h"

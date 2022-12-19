@@ -1,3 +1,14 @@
+/**
+ * @file lcd_display_task.cpp
+ * @author Christopher Romano (christopher.romano@metropolia.fi)
+ * @brief Declaration of tasks related to controlling the LCD
+ * @version 0.1
+ * @date 2022-12-13
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #include "lcd_display_task.h"
 
 void lcd_display_task(void *params)

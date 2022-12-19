@@ -1,3 +1,14 @@
+/**
+ * @file menu_tasks.h
+ * @author Christopher Romano (christopher.romano@metropolia.fi)
+ * @brief Declaration of menu state related tasks, structs and enums
+ * @version 0.1
+ * @date 2022-12-13
+ *
+ * @copyright Copyright (c) 2022
+ *
+ */
+
 #ifndef MENU_TASKS_H_
 #define MENU_TASKS_H_
 
