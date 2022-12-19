@@ -24,6 +24,11 @@
 #include "../ModbusTask.h"
 #include "menu_tasks.h"
 
+/**
+ * @brief Task that handles menu operation
+ *
+ * @param params FreeRTOS task prototype param
+ */
 void menu_operate_task(void *params)
 {
     /**
