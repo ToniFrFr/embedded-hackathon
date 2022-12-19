@@ -1,7 +1,7 @@
 /**
  * @file ModbusInterface.cpp
  * @author Samuel Tikkanen
- * @brief SensorState definition
+ * @brief SensorState and modbusTimer definition
  * @version 0.1
  * @date 2022-12-13
  *
