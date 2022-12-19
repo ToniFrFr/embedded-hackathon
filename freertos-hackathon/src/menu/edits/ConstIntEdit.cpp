@@ -1,3 +1,7 @@
+//========================================//
+//      DEPRECATED - FILE NOT IN USE      //
+//========================================//
+
 /**
  * @file ConstIntEdit.cpp
  * @author Christopher Romano (christopher.romano@metropolia.fi)

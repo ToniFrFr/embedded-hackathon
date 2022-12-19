@@ -1,3 +1,7 @@
+//========================================//
+//      DEPRECATED - FILE NOT IN USE      //
+//========================================//
+
 /**
  * @file IntEdit.cpp
  * @author Christopher Romano (christopher.romano@metropolia.fi)
