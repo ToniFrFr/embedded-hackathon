@@ -210,7 +210,6 @@ int32_t Plaintext_FreeRTOS_recv( NetworkContext_t * pNetworkContext,
 
     return socketStatus;
 }
-
 int32_t Plaintext_FreeRTOS_send( NetworkContext_t * pNetworkContext,
                                  const void * pBuffer,
                                  size_t bytesToSend )
