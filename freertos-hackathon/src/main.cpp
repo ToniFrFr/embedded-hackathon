@@ -156,15 +156,16 @@ std::atomic<uint32_t> atom_setpoint;
 /* Global semaphore */
 SemaphoreHandle_t new_setpoint_available;
 
+/* Handle used to suspend EEPROMread task */
 TaskHandle_t taskHandleForEepromRead = NULL;
 
 void vEEPROMwrite(void *params)
 {
 	(void) params;
 	
-	uint8_t ret_code;
-	uint8_t msg[4];
-	uint32_t setpoint_PPM;
+	uint8_t ret_code; 		/* Used to check validity of EEPROM access */
+	uint8_t msg[4];			/* Holds the data to be written to EEPROM */
+	uint32_t setpoint_PPM;	/* Holds the value of the setpoint */
 	
 	while(1){
 		// Get the setpoint, suspend afterwards
@@ -236,14 +237,15 @@ void vEEPROMread(void *params)
 {
 	(void) params;
 	
-	uint8_t ret_code;
-	uint8_t msg[4];
-	uint32_t setpoint_PPM;
+	uint8_t ret_code;		/* Used to check validity of EEPROM access */
+	uint8_t msg[4];			/* Holds the data which is read from EEPROM */
+	uint32_t setpoint_PPM;	/* Holds the setpoint which is read from EEPROM */
 	
 	while(1){
 		// Disable FreeRTOS scheduler
 		vTaskSuspendAll();
 		
+		// Read from EEPROM
 		ret_code = Chip_EEPROM_Read(EEPROM_ADDR, msg, NUM_BYTES);
 		
 		if(ret_code == IAP_CMD_SUCCESS) {
@@ -252,7 +254,7 @@ void vEEPROMread(void *params)
 			// EEPROM read failed
 		}
 		
-		// Get value into setpoint_PPM
+		// Get read value into setpoint_PPM
 		setpoint_PPM = (msg[0] & 0x000000ff) | (msg[1] & 0x0000ffff) << 8 |
 		        (msg[2] & 0x00ffffff) << 16 | (msg[3] & 0xffffffff) << 24;
 		
