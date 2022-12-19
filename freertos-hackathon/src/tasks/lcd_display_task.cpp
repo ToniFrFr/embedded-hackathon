@@ -37,7 +37,7 @@ void lcd_display_task(void *params)
     LiquidCrystal *lcd = new LiquidCrystal(rs, en, d4, d5, d6, d7);
 
     /**
-     * @brief Cleat the LCD
+     * @brief Clear the LCD
      *
      */
     lcd->clear();
