@@ -13,7 +13,7 @@
  */
 
 /// \cond
-#include <cr_section_macros.h
+#include <cr_section_macros.h>
 #include "board.h"
 #include "FreeRTOS.h"
 #include "task.h"
